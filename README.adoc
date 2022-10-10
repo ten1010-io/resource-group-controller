@@ -22,7 +22,7 @@ Resource Group Controller는 다음과 같은 기능을 제공하는 쿠버네�
 . 프로젝트 클론
 +
 ----
-git clone https://github.com/ynoohe1/resource-group-controller.git
+git clone https://github.com/ten1010-io/resource-group-controller.git
 cd resource-group-controller
 # checkout branch or tag you want to use
 # example: git checkout tags/v1.0.0
