@@ -16,7 +16,7 @@ spec:
       automountServiceAccountToken: true
       containers:
         - name: resource-group-controller
-          image: resource-group-controller:1.1.0-SNAPSHOT
+          image: ten1010io/resource-group-controller:1.1.0-SNAPSHOT
           envFrom:
             - configMapRef:
                 name: resource-group-controller-envs
