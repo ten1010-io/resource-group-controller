@@ -17,8 +17,8 @@ import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Slf4j
 public class PodReconciler implements Reconciler {
@@ -62,7 +62,7 @@ public class PodReconciler implements Reconciler {
 
             List<V1Toleration> allTolerations = ReconcilerUtil.getTolerations(pod);
             List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(allTolerations, groups);
-            if (Set.of(allTolerations).equals(Set.of(reconciledTolerations))) {
+            if (new HashSet<>(allTolerations).equals(new HashSet<>(reconciledTolerations))) {
                 return new Result(false);
             }
             deletePod(ReconcilerUtil.getNamespace(pod), ReconcilerUtil.getName(pod));
