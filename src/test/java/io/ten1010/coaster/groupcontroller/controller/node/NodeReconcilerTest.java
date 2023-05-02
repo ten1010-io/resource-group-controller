@@ -95,4 +95,52 @@ class NodeReconcilerTest {
         }
     }
 
+
+    @Test
+    void should_do_nothing_the_given_labels_and_taints_of_node_are_equal_with_resource_groups() {
+        V1ResourceGroup group1 = new V1ResourceGroup();
+
+        V1ObjectMeta meta1 = new V1ObjectMeta();
+        meta1.setName("group1");
+        group1.setMetadata(meta1);
+
+        V1ResourceGroupSpec spec1 = new V1ResourceGroupSpec();
+        spec1.setNodes(List.of("node1"));
+        group1.setSpec(spec1);
+
+        V1Node node1 = new V1Node();
+
+        V1ObjectMeta nodeMeta1 = new V1ObjectMeta();
+        nodeMeta1.setName("node1");
+        Map<String, String> labels = new HashMap<>();
+        labels.put(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE, "group1");
+        nodeMeta1.setLabels(labels);
+        node1.setMetadata(nodeMeta1);
+
+        V1NodeSpec nodeSpec1 = new V1NodeSpec();
+        V1Taint noSchd = new V1Taint();
+        noSchd.setKey(TaintConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
+        noSchd.setValue("group1");
+        noSchd.setEffect(TaintConstants.EFFECT_NO_SCHEDULE);
+        V1Taint noExe = new V1Taint();
+        noExe.setKey(TaintConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
+        noExe.setEffect(TaintConstants.EFFECT_NO_EXECUTE);
+        noExe.setValue("group1");
+        nodeSpec1.setTaints(List.of(noSchd, noExe));
+
+        node1.setSpec(nodeSpec1);
+
+        Mockito.doReturn(List.of(group1)).when(this.groupIndexer).byIndex(IndexNameConstants.BY_NODE_NAME_TO_GROUP_OBJECT, "node1");
+        Mockito.doReturn(node1).when(this.nodeIndexer).getByKey("node1");
+
+        NodeReconciler nodeReconciler = new NodeReconciler(this.nodeIndexer, this.groupIndexer, this.coreV1Api, this.eventRecorder);
+        nodeReconciler.reconcile(new Request("node1"));
+
+        try {
+            Mockito.verifyNoInteractions(this.coreV1Api);
+        } catch (Exception e) {
+            Assertions.fail();
+        }
+
+    }
 }
