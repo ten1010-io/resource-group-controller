@@ -51,7 +51,7 @@ class PodReconcilerTest {
         podMeta1.setName("pod1");
         pod1.setMetadata(podMeta1);
         V1PodSpec podSpec1 = new V1PodSpec();
-        podSpec1.setTolerations(new ArrayList<>());
+        podSpec1.setTolerations(new ArrayList<>()); // empty tolerations
         pod1.setSpec(podSpec1);
 
         try {
@@ -78,5 +78,30 @@ class PodReconcilerTest {
         Mockito.verifyNoMoreInteractions(this.coreV1Api);
     }
 
+    @Test
+    void pod_replace() {
+
+
+
+        try {
+            Mockito.verify(this.coreV1Api).replaceNamespacedPod(
+                    Mockito.eq("pod1"),
+                    Mockito.eq("ns1"),
+                    Mockito.argThat(pod -> {
+                        String podName = pod.getMetadata().getName();
+                        if(!podName.equals("pod1")) {
+                            return false;
+                        }
+                        return true;
+                    }),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null)
+            );
+        } catch (ApiException e) {
+            Assertions.fail();
+        }
+    }
 }
 
