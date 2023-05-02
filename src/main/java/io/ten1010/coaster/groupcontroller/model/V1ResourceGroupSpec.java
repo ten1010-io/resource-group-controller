@@ -74,12 +74,22 @@ public class V1ResourceGroupSpec {
 
     @Override
     public String toString() {
-        return "V1ResourceGroupSpec{" +
-                "nodes=" + this.nodes +
-                ", namespaces=" + this.namespaces +
-                ", exceptions=" + this.exceptions +
-                ", subjects=" + this.subjects +
-                '}';
+        StringBuilder sb = new StringBuilder();
+        sb.append("class V1ResourceGroupSpec {\n");
+        sb.append("    nodes: " + this.nodes + "\n");
+        sb.append("    nodes: ").append(toIndentedString(this.nodes)).append("\n");
+        sb.append("    namespaces: ").append(toIndentedString(this.namespaces)).append("\n");
+        sb.append("    exceptions: ").append(toIndentedString(this.exceptions)).append("\n");
+        sb.append("    subjects: ").append(toIndentedString(this.subjects)).append("\n");
+        sb.append("}");
+        return sb.toString();
+    }
+
+    private String toIndentedString(java.lang.Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
     }
 
 }
