@@ -10,6 +10,13 @@ import java.util.Objects;
 
 public class V1ResourceGroupList implements KubernetesListObject {
 
+    private static String toIndentedString(@Nullable Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
+
     private String apiVersion;
     private String kind;
     private V1ListMeta metadata;
@@ -82,19 +89,12 @@ public class V1ResourceGroupList implements KubernetesListObject {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("class V1ResourceGroupList {\n");
-        sb.append("    apiVersion: ").append(toIndentedString(this.apiVersion)).append("\'\n");
-        sb.append("    kind: ").append(toIndentedString(this.kind)).append("\'\n");
+        sb.append("    apiVersion: ").append(toIndentedString(this.apiVersion)).append("\n");
+        sb.append("    kind: ").append(toIndentedString(this.kind)).append("\n");
         sb.append("    metadata: ").append(toIndentedString(this.metadata)).append("\n");
         sb.append("    items: ").append(toIndentedString(this.items)).append("\n");
         sb.append("}");
         return sb.toString();
-    }
-
-    private String toIndentedString(java.lang.Object o) {
-        if (o == null) {
-            return "null";
-        }
-        return o.toString().replace("\n", "\n    ");
     }
 
 }
