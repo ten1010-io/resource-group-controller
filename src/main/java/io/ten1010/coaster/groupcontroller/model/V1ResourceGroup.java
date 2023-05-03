@@ -17,6 +17,13 @@ public class V1ResourceGroup implements KubernetesObject {
                 .setKind(KIND);
     }
 
+    private static String toIndentedString(@Nullable Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
+
     private String apiVersion;
     private String kind;
     private V1ObjectMeta metadata;
@@ -98,13 +105,15 @@ public class V1ResourceGroup implements KubernetesObject {
 
     @Override
     public String toString() {
-        return "V1ResourceGroup{" +
-                "apiVersion='" + this.apiVersion + '\'' +
-                ", kind='" + this.kind + '\'' +
-                ", metadata=" + this.metadata +
-                ", spec=" + this.spec +
-                ", status=" + this.status +
-                '}';
+        StringBuilder sb = new StringBuilder();
+        sb.append("class V1ResourceGroup {\n");
+        sb.append("    apiVersion: '").append(toIndentedString(this.apiVersion)).append("\n");
+        sb.append("    kind: '").append(toIndentedString(this.kind)).append("\n");
+        sb.append("    metadata: ").append(toIndentedString(this.metadata)).append("\n");
+        sb.append("    spec: ").append(toIndentedString(this.spec)).append("\n");
+        sb.append("    status: ").append(toIndentedString(this.status)).append("\n");
+        sb.append("}");
+        return sb.toString();
     }
 
 }
