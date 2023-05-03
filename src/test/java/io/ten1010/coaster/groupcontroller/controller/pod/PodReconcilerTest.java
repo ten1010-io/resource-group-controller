@@ -5,11 +5,10 @@ import io.kubernetes.client.extended.event.legacy.EventRecorder;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodSpec;
+import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
+import io.ten1010.coaster.groupcontroller.core.TaintConstants;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
@@ -51,7 +50,7 @@ class PodReconcilerTest {
         podMeta1.setName("pod1");
         pod1.setMetadata(podMeta1);
         V1PodSpec podSpec1 = new V1PodSpec();
-        podSpec1.setTolerations(new ArrayList<>()); // empty tolerations
+        podSpec1.setTolerations(new ArrayList<>());
         pod1.setSpec(podSpec1);
 
         try {
@@ -79,27 +78,45 @@ class PodReconcilerTest {
     }
 
     @Test
-    void pod_replace() {
+    void no_interactions_when_pod_has_proper_tolerations() {
+        V1ResourceGroup group1 = new V1ResourceGroup();
+        V1ObjectMeta meta1 = new V1ObjectMeta();
+        meta1.setName("group1");
+        group1.setMetadata(meta1);
 
+        V1ResourceGroupSpec spec1 = new V1ResourceGroupSpec();
+        spec1.setNamespaces(List.of("ns1"));
+        group1.setSpec(spec1);
 
+        V1Pod pod1 = new V1Pod();
+        V1ObjectMeta podMeta1 = new V1ObjectMeta();
+        podMeta1.setName("ns1");
+        podMeta1.setName("pod1");
+        pod1.setMetadata(podMeta1);
+        V1PodSpec podSpec1 = new V1PodSpec();
+        V1TolerationBuilder tolerationBuilder = new V1TolerationBuilder()
+                .withKey(TaintConstants.KEY_RESOURCE_GROUP_EXCLUSIVE)
+                .withValue("group1")
+                .withOperator("Equal");
+        podSpec1.setTolerations(List.of(
+                tolerationBuilder.withEffect("NoSchedule").build(),
+                tolerationBuilder.withEffect("NoExecute").build()
+                ));
+        pod1.setSpec(podSpec1);
 
         try {
-            Mockito.verify(this.coreV1Api).replaceNamespacedPod(
-                    Mockito.eq("pod1"),
-                    Mockito.eq("ns1"),
-                    Mockito.argThat(pod -> {
-                        String podName = pod.getMetadata().getName();
-                        if(!podName.equals("pod1")) {
-                            return false;
-                        }
-                        return true;
-                    }),
-                    Mockito.eq(null),
-                    Mockito.eq(null),
-                    Mockito.eq(null),
-                    Mockito.eq(null)
-            );
-        } catch (ApiException e) {
+            Mockito.doReturn(List.of(group1)).when(this.groupResolver).resolve(pod1);
+        } catch (GroupResolver.NamespaceConflictException e) {
+            Assertions.fail();
+        }
+
+        Mockito.doReturn(pod1).when(this.podIndexer).getByKey(KeyUtil.buildKey("ns1", "pod1"));
+        PodReconciler podReconciler = new PodReconciler(this.podIndexer, this.groupResolver, this.coreV1Api, this.eventRecorder);
+        podReconciler.reconcile(new Request("ns1", "pod1"));
+
+        try {
+            Mockito.verifyNoInteractions(this.coreV1Api);
+        } catch (Exception e) {
             Assertions.fail();
         }
     }
