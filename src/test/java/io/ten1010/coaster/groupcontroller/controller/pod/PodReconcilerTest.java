@@ -78,7 +78,7 @@ class PodReconcilerTest {
     }
 
     @Test
-    void no_interactions_when_pod_has_proper_tolerations() {
+    void given_pod_has_proper_tolerations_when_reconcile_the_pod_then_should_do_nothing() {
         V1ResourceGroup group1 = new V1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
