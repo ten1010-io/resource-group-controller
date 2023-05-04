@@ -43,9 +43,8 @@ public class PodReconciler implements Reconciler {
 
     /**
      * Reconcile given pod based on {@link Request} to ensure that pods are running with correct tolerations based on Resource Group which pods belong.
-     * If reconciled tolerations of pods differ from Resource Group tolerations, then delete the pod through {@link CoreV1Api}.
      * @param request the reconcile request, triggered by watch events
-     * @return
+     * @return the result
      */
     @Override
     public Result reconcile(Request request) {
