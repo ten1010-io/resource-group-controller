@@ -41,6 +41,11 @@ public class PodReconciler implements Reconciler {
         this.eventRecorder = eventRecorder;
     }
 
+    /**
+     * Reconcile given pod based on {@link Request} to ensure that pods are running with correct tolerations based on Resource Group which pods belong.
+     * @param request the reconcile request, triggered by watch events
+     * @return the result
+     */
     @Override
     public Result reconcile(Request request) {
         return this.template.execute(() -> {
