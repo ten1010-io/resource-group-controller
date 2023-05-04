@@ -45,6 +45,14 @@ public class NodeReconciler implements Reconciler {
         return taints == null ? new ArrayList<>() : taints;
     }
 
+    /**
+     * Check whether given taint has ResourceGroup{@link V1ResourceGroup} exclusive key.
+     * <p>
+     *     See constant string in TaintConstants{@link TaintConstants}.
+     * </p>
+     * @param taint
+     * @return {@code true} if this taint has ResourceGroup{@link V1ResourceGroup} exclusive key
+     */
     private static boolean isResourceGroupExclusiveTaint(V1Taint taint) {
         if (taint.getKey() == null) {
             return false;
@@ -53,6 +61,11 @@ public class NodeReconciler implements Reconciler {
         return taint.getKey().equals(TaintConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
     }
 
+    /**
+     * Build exclusive taints for ResourceGroup{@link V1ResourceGroup} which has no schedule and no execute effect, and has resource group name as value.
+     * @param group
+     * @return a list of taints
+     */
     private static List<V1Taint> buildResourceGroupExclusiveTaints(V1ResourceGroup group) {
         V1TaintBuilder baseBuilder = new V1TaintBuilder()
                 .withKey(TaintConstants.KEY_RESOURCE_GROUP_EXCLUSIVE)
@@ -82,6 +95,11 @@ public class NodeReconciler implements Reconciler {
         this.eventRecorder = eventRecorder;
     }
 
+    /**
+     * Reconcile the desired resource state after comparing it with the actual resource state.
+     * @param request the reconcile request, triggered by watch events
+     * @return the result
+     */
     @Override
     public Result reconcile(Request request) {
         return this.template.execute(() -> {
@@ -117,6 +135,11 @@ public class NodeReconciler implements Reconciler {
         }, request);
     }
 
+    /**
+     * @param node
+     * @param group
+     * @return a map has reconciled labels
+     */
     private Map<String, String> reconcileLabels(V1Node node, @Nullable V1ResourceGroup group) {
         Map<String, String> labels = getLabels(node);
         labels.remove(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
@@ -127,6 +150,11 @@ public class NodeReconciler implements Reconciler {
         return labels;
     }
 
+    /**
+     * @param node
+     * @param group
+     * @return a list of reconciled taints
+     */
     private List<V1Taint> reconcileTaints(V1Node node, @Nullable V1ResourceGroup group) {
         List<V1Taint> taints = getTaints(node).stream()
                 .filter(e -> !isResourceGroupExclusiveTaint(e))
@@ -138,6 +166,13 @@ public class NodeReconciler implements Reconciler {
         return taints;
     }
 
+    /**
+     * Replace the node to have given labels and taints
+     * @param target
+     * @param labels
+     * @param taints
+     * @throws ApiException
+     */
     private void updateNode(V1Node target, Map<String, String> labels, List<V1Taint> taints) throws ApiException {
         V1Node updated = new V1NodeBuilder(target)
                 .editMetadata()
