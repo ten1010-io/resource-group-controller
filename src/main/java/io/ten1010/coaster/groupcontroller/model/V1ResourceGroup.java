@@ -107,8 +107,8 @@ public class V1ResourceGroup implements KubernetesObject {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("class V1ResourceGroup {\n");
-        sb.append("    apiVersion: '").append(toIndentedString(this.apiVersion)).append("\n");
-        sb.append("    kind: '").append(toIndentedString(this.kind)).append("\n");
+        sb.append("    apiVersion: ").append(toIndentedString(this.apiVersion)).append("\n");
+        sb.append("    kind: ").append(toIndentedString(this.kind)).append("\n");
         sb.append("    metadata: ").append(toIndentedString(this.metadata)).append("\n");
         sb.append("    spec: ").append(toIndentedString(this.spec)).append("\n");
         sb.append("    status: ").append(toIndentedString(this.status)).append("\n");
