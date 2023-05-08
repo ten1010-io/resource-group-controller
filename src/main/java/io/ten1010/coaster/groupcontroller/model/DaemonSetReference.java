@@ -1,13 +1,19 @@
 package io.ten1010.coaster.groupcontroller.model;
 
 import org.springframework.lang.Nullable;
-
 import java.util.Objects;
 
 public class DaemonSetReference {
 
     private String namespace;
     private String name;
+
+    private static String toIndentedString(@Nullable Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
 
     public DaemonSetReference() {
     }
@@ -46,10 +52,12 @@ public class DaemonSetReference {
 
     @Override
     public String toString() {
-        return "DaemonSetReference{" +
-                "namespace='" + this.namespace + '\'' +
-                ", name='" + this.name + '\'' +
-                '}';
+        StringBuilder sb = new StringBuilder();
+        sb.append("class DaemonSetReference {\n");
+        sb.append("    namespace: ").append(toIndentedString(this.namespace)).append("\n");
+        sb.append("    name: ").append(toIndentedString(this.name)).append("\n");
+        sb.append("}");
+        return sb.toString();
     }
 
 }

@@ -1,5 +1,6 @@
 package io.ten1010.coaster.groupcontroller.model;
 
+import org.springframework.lang.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -7,6 +8,13 @@ import java.util.Objects;
 public class Exceptions {
 
     private List<DaemonSetReference> daemonSets;
+
+    private static String toIndentedString(@Nullable Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
 
     public Exceptions() {
         this.daemonSets = new ArrayList<>();
@@ -35,9 +43,11 @@ public class Exceptions {
 
     @Override
     public String toString() {
-        return "Exceptions{" +
-                "daemonSets=" + this.daemonSets +
-                '}';
+        StringBuilder sb = new StringBuilder();
+        sb.append("class Exceptions {");
+        sb.append("    daemonSets: ").append(toIndentedString(this.daemonSets)).append("\n");
+        sb.append("}");
+        return sb.toString();
     }
 
 }
