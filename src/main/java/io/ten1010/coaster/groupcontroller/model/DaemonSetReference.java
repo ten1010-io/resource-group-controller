@@ -6,6 +6,13 @@ import java.util.Objects;
 
 public class DaemonSetReference {
 
+    private static String toIndentedString(@Nullable Object o) {
+        if (o == null) {
+            return "null";
+        }
+        return o.toString().replace("\n", "\n    ");
+    }
+
     private String namespace;
     private String name;
 
@@ -46,10 +53,12 @@ public class DaemonSetReference {
 
     @Override
     public String toString() {
-        return "DaemonSetReference{" +
-                "namespace='" + this.namespace + '\'' +
-                ", name='" + this.name + '\'' +
-                '}';
+        StringBuilder sb = new StringBuilder();
+        sb.append("class DaemonSetReference {\n");
+        sb.append("    namespace: ").append(toIndentedString(this.namespace)).append("\n");
+        sb.append("    name: ").append(toIndentedString(this.name)).append("\n");
+        sb.append("}");
+        return sb.toString();
     }
 
 }
