@@ -7,14 +7,14 @@ import java.util.Objects;
 
 public class Exceptions {
 
-    private List<DaemonSetReference> daemonSets;
-
     private static String toIndentedString(@Nullable Object o) {
         if (o == null) {
             return "null";
         }
         return o.toString().replace("\n", "\n    ");
     }
+
+    private List<DaemonSetReference> daemonSets;
 
     public Exceptions() {
         this.daemonSets = new ArrayList<>();

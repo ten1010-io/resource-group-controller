@@ -1,12 +1,10 @@
 package io.ten1010.coaster.groupcontroller.model;
 
 import org.springframework.lang.Nullable;
+
 import java.util.Objects;
 
 public class DaemonSetReference {
-
-    private String namespace;
-    private String name;
 
     private static String toIndentedString(@Nullable Object o) {
         if (o == null) {
@@ -14,6 +12,9 @@ public class DaemonSetReference {
         }
         return o.toString().replace("\n", "\n    ");
     }
+
+    private String namespace;
+    private String name;
 
     public DaemonSetReference() {
     }
