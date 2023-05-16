@@ -53,7 +53,7 @@ public class RoleReconciler implements Reconciler {
 	        1. HorizontalPodAutoscaler
         6. policy
 	        1. PodDisruptionBudget
-         */
+     */
     private static List<V1PolicyRule> buildRules() {
         V1PolicyRule coreApiRule = new V1PolicyRuleBuilder().withApiGroups("")
                 .withResources("pods", "services", "configmaps", "secrets", "persistentvolumeclaims", "serviceaccounts", "limitranges", "events")
@@ -94,6 +94,12 @@ public class RoleReconciler implements Reconciler {
         return role.getRules() == null ? new ArrayList<>() : role.getRules();
     }
 
+    /**
+     * Build the owner reference with given resource group name and namespace.
+     * @param groupName a name of resource group
+     * @param groupUid an uid of resource group
+     * @return an owner reference which contain resource group information
+     */
     private static V1OwnerReference buildOwnerReference(String groupName, String groupUid) {
         V1OwnerReferenceBuilder builder = new V1OwnerReferenceBuilder();
         return builder.withApiVersion(V1ResourceGroup.API_VERSION)
@@ -105,6 +111,11 @@ public class RoleReconciler implements Reconciler {
                 .build();
     }
 
+    /**
+     * Build the owner reference based on given resource group.
+     * @param group a resource group for owner reference
+     * @return an owner reference which contain resource group information
+     */
     private static V1OwnerReference buildOwnerReference(V1ResourceGroup group) {
         Objects.requireNonNull(group.getMetadata());
         Objects.requireNonNull(group.getMetadata().getName());
@@ -133,6 +144,11 @@ public class RoleReconciler implements Reconciler {
         this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
     }
 
+    /**
+     * Reconcile given role based on {@link Request} to ensure its namespace and its policy compared with {@link V1ResourceGroup}.
+     * @param request the reconcile request which triggered by watch events
+     * @return the result
+     */
     @Override
     public Result reconcile(Request request) {
         return this.template.execute(
@@ -173,6 +189,14 @@ public class RoleReconciler implements Reconciler {
                 request);
     }
 
+    /**
+     * Create the role with given resource name, namespace and rules.
+     * @param namespace a namespace for role
+     * @param name a name of resource group
+     * @param rules the rules to add
+     * @param ownerReference an owner reference based the resource group
+     * @throws ApiException
+     */
     private void createRole(String namespace, String name, List<V1PolicyRule> rules, V1OwnerReference ownerReference) throws ApiException {
         V1RoleBuilder builder = new V1RoleBuilder();
         V1Role role = builder.withNewMetadata()
@@ -185,6 +209,12 @@ public class RoleReconciler implements Reconciler {
         this.rbacAuthorizationV1Api.createNamespacedRole(namespace, role, null, null, null, null);
     }
 
+    /**
+     * Replace the role with given rules which grant all verbs permissions for the resources.
+     * @param target a rule to update
+     * @param rules the rules to applyd
+     * @throws ApiException
+     */
     private void updateRole(V1Role target, List<V1PolicyRule> rules) throws ApiException {
         V1RoleBuilder builder = new V1RoleBuilder(target);
         V1Role updated = builder.withRules(rules)
@@ -196,10 +226,22 @@ public class RoleReconciler implements Reconciler {
         this.rbacAuthorizationV1Api.replaceNamespacedRole(meta.getName(), meta.getNamespace(), updated, null, null, null, null);
     }
 
+    /**
+     * Delete the role which has given namespace and name.
+     * @param namespace
+     * @param name
+     * @throws ApiException
+     */
     private void deleteRole(String namespace, String name) throws ApiException {
         this.rbacAuthorizationV1Api.deleteNamespacedRole(name, namespace, null, null, null, null, null, null);
     }
 
+    /**
+     * Delete the role if it exists with given namespace and name.
+     * @param namespace a namespace of role
+     * @param name a name of resource group
+     * @throws ApiException
+     */
     private void deleteRoleIfExist(String namespace, String name) throws ApiException {
         V1Role role = this.roleIndexer.getByKey(KeyUtil.buildKey(namespace, name));
         if (role == null) {
