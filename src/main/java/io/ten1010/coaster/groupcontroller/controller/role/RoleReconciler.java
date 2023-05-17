@@ -53,7 +53,7 @@ public class RoleReconciler implements Reconciler {
 	        1. HorizontalPodAutoscaler
         6. policy
 	        1. PodDisruptionBudget
-         */
+     */
     private static List<V1PolicyRule> buildRules() {
         V1PolicyRule coreApiRule = new V1PolicyRuleBuilder().withApiGroups("")
                 .withResources("pods", "services", "configmaps", "secrets", "persistentvolumeclaims", "serviceaccounts", "limitranges", "events")
@@ -133,6 +133,11 @@ public class RoleReconciler implements Reconciler {
         this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
     }
 
+    /**
+     * Reconcile given role based on {@link Request} to ensure its namespace and its policy compared with {@link V1ResourceGroup}.
+     * @param request the reconcile request which triggered by watch events
+     * @return the result
+     */
     @Override
     public Result reconcile(Request request) {
         return this.template.execute(
