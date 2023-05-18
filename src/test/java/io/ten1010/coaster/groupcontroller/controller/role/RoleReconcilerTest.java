@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.util.List;
+import java.util.Set;
 
 class RoleReconcilerTest {
 
@@ -138,7 +139,7 @@ class RoleReconcilerTest {
                                 .withVerbs("*")
                                 .build();
                         List<V1PolicyRule> rules = List.of(coreApiRule, eventApiRule, batchApiRule, appsApiRule, autoscalingApiRule, poddisrubptionbudgetApiRule);
-                        if (!role.getRules().equals(rules)) {
+                        if (!Set.copyOf(role.getRules()).equals(Set.copyOf(rules))) {
                             return false;
                         }
                         return role.getMetadata().getName().equals("resource-group-controller.ten1010.io:group1");
@@ -181,14 +182,14 @@ class RoleReconcilerTest {
         roleReconciler.reconcile(new Request("ns1", "resource-group-controller.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).deleteNamespacedRole(
-                    Mockito.eq("resource-group-controller.ten1010.io:group1"), // name
-                    Mockito.eq("ns1"), // namespace
+                    Mockito.eq("resource-group-controller.ten1010.io:group1"),
+                    Mockito.eq("ns1"),
                     Mockito.eq(null),
                     Mockito.eq(null),
                     Mockito.eq(null),
                     Mockito.eq(null),
                     Mockito.eq(null),
-                    Mockito.eq(null) // body
+                    Mockito.eq(null)
             );
         } catch (ApiException e) {
             Assertions.fail();
@@ -237,7 +238,7 @@ class RoleReconcilerTest {
         roleReconciler.reconcile(new Request("ns2", "resource-group-controller.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).deleteNamespacedRole(
-                    Mockito.eq("resource-group-controller.ten1010.io:group1"), // name
+                    Mockito.eq("resource-group-controller.ten1010.io:group1"),
                     Mockito.eq("ns2"),
                     Mockito.eq(null),
                     Mockito.eq(null),
@@ -251,4 +252,5 @@ class RoleReconcilerTest {
         }
         Mockito.verifyNoMoreInteractions(this.rbacAuthorizationV1Api);
     }
+
 }
