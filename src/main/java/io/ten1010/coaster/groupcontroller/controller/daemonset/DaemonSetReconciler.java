@@ -68,12 +68,7 @@ public class DaemonSetReconciler implements Reconciler {
                     log.debug("v [{}] founded while reconciling\n{}", daemonSetKey, daemonSet.toString());
 
                     List<V1ResourceGroup> groups;
-                    try {
-                        groups = this.groupResolver.resolve(daemonSet);
-                    } catch (GroupResolver.NamespaceConflictException e) {
-                        ReconcilerUtil.issueWarningEvents(e, this.eventRecorder);
-                        return new Result(true, INVALID_STATE_REQUEUE_DURATION);
-                    }
+                    groups = this.groupResolver.resolve(daemonSet);
 
                     List<V1Toleration> tolerations = getTolerations(daemonSet);
                     List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(tolerations, groups);

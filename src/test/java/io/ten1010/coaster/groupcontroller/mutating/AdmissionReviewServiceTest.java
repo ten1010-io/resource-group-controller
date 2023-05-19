@@ -5,9 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodSpec;
+import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
@@ -31,7 +29,7 @@ class AdmissionReviewServiceTest {
     }
 
     @Test
-    void should_patch_nodeSelectors_and_tolerations() {
+    void should_patch_nodeAffinities_and_tolerations() {
         V1ResourceGroup group1 = new V1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
@@ -49,11 +47,7 @@ class AdmissionReviewServiceTest {
         podSpec1.setTolerations(new ArrayList<>());
         pod1.setSpec(podSpec1);
 
-        try {
-            Mockito.doReturn(List.of(group1)).when(this.groupResolver).resolve(pod1);
-        } catch (GroupResolver.NamespaceConflictException e) {
-            Assertions.fail();
-        }
+        Mockito.doReturn(List.of(group1)).when(this.groupResolver).resolve(pod1);
         AdmissionReviewService admissionReviewService = new AdmissionReviewService(this.groupResolver);
         V1AdmissionReviewRequest request = new V1AdmissionReviewRequest();
         V1AdmissionReviewRequest.Kind kind = new V1AdmissionReviewRequest.Kind();
@@ -82,10 +76,10 @@ class AdmissionReviewServiceTest {
         } catch (JsonProcessingException e) {
             Assertions.fail(e);
         }
-        String nodeSelectorPath = "/spec/nodeSelector";
+        String affinityPath = "/spec/affinity";
         String tolerationsPath = "/spec/tolerations";
         for (ObjectNode e : patchJson) {
-            if ((!e.get("path").textValue().equals(nodeSelectorPath) && !e.get("path").textValue().equals(tolerationsPath))) {
+            if ((!e.get("path").textValue().equals(affinityPath) && !e.get("path").textValue().equals(tolerationsPath))) {
                 Assertions.fail();
             }
         }

@@ -4,9 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.kubernetes.client.openapi.models.V1OwnerReference;
-import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1Toleration;
+import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
@@ -39,42 +37,21 @@ public class AdmissionReviewService {
         Objects.requireNonNull(pod.getMetadata());
         pod.getMetadata().setNamespace(request.getNamespace());
 
-        List<V1ResourceGroup> groups;
-        try {
-            groups = this.groupResolver.resolve(pod);
-        } catch (GroupResolver.NamespaceConflictException e) {
-            V1AdmissionReviewResponse response = new V1AdmissionReviewResponse();
-            response.setUid(request.getUid());
-            response.setAllowed(false);
-
-            V1AdmissionReviewResponse.Status status = new V1AdmissionReviewResponse.Status();
-            status.setCode(HttpURLConnection.HTTP_CONFLICT);
-            status.setMessage(String.format("Namespace [%s] belongs to multiple groups", ReconcilerUtil.getName(pod)));
-
-            response.setStatus(status);
-
-            return response;
-        }
-
+        List<V1ResourceGroup> groups = this.groupResolver.resolve(pod);
         Pair<Boolean, V1OwnerReference> result = GroupResolver.isDaemonSetPod(pod);
-        Map<String, String> reconciledNodeSelector;
+        V1Affinity reconciledAffinities;
         if (result.getValue0()) {
-            reconciledNodeSelector = ReconcilerUtil.getNodeSelector(pod);
+            reconciledAffinities = ReconcilerUtil.getAffinity(pod);
         } else {
-            if (groups.size() > 1) {
-                throw new RuntimeException("More than 1 resource groups found for pod though it's not daemon set pod");
-            }
-            reconciledNodeSelector = ReconcilerUtil.reconcileNodeSelector(
-                    ReconcilerUtil.getNodeSelector(pod),
-                    groups.size() == 1 ? groups.get(0) : null);
+            reconciledAffinities = ReconcilerUtil.reconcileAffinity(ReconcilerUtil.getAffinity(pod), groups);
         }
 
         List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(ReconcilerUtil.getTolerations(pod), groups);
 
         List<ReplaceJsonPatchElement> jsonPatch = List.of(
-                buildReplaceJsonPatchElement(reconciledNodeSelector),
-                buildReplaceJsonPatchElement(reconciledTolerations));
-        String patch = buildPatchString(jsonPatch);
+                buildReplaceJsonPatchElement(reconciledTolerations),
+                buildReplaceJsonPatchElement(reconciledAffinities));
+                String patch = buildPatchString(jsonPatch);
 
         V1AdmissionReviewResponse response = new V1AdmissionReviewResponse();
         response.setUid(request.getUid());
@@ -84,9 +61,8 @@ public class AdmissionReviewService {
 
         return response;
     }
-
-    private ReplaceJsonPatchElement buildReplaceJsonPatchElement(Map<String, String> nodeSelector) {
-        return new ReplaceJsonPatchElement("/spec/nodeSelector", this.mapper.valueToTree(nodeSelector));
+    private ReplaceJsonPatchElement buildReplaceJsonPatchElement(V1Affinity affinity) {
+        return new ReplaceJsonPatchElement("/spec/affinity", this.mapper.valueToTree(affinity));
     }
 
     private ReplaceJsonPatchElement buildReplaceJsonPatchElement(List<V1Toleration> tolerations) {

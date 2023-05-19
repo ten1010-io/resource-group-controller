@@ -80,11 +80,7 @@ class DaemonSetReconcilerTest {
         dsSpec1.setTemplate(podTemplateSpec);
         ds1.setSpec(dsSpec1);
 
-        try {
-            Mockito.doReturn(List.of(group1, group2)).when(this.groupResolver).resolve(ds1);
-        } catch (GroupResolver.NamespaceConflictException e) {
-            Assertions.fail();
-        }
+        Mockito.doReturn(List.of(group1, group2)).when(this.groupResolver).resolve(ds1);
         Mockito.doReturn(ds1).when(this.daemonSetIndexer).getByKey(KeyUtil.buildKey("ns1", "ds1"));
         DaemonSetReconciler daemonSetReconciler = new DaemonSetReconciler(this.daemonSetIndexer, this.groupResolver, this.appsV1Api, this.eventRecorder);
         daemonSetReconciler.reconcile(new Request("ns1", "ds1"));

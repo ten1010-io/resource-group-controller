@@ -22,8 +22,6 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
 
     public static class EventHandler implements ResourceEventHandler<V1Namespace> {
 
-        private static final String MSG_NAMESPACE_BELONGS_TO_MULTIPLE_GROUPS = "Namespace [%s] belongs to multiple groups";
-
         private WorkQueue<Request> queue;
         private Indexer<V1ResourceGroup> groupIndexer;
         private RoleNameUtil roleNameUtil;
@@ -46,18 +44,9 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
             if (groups.size() == 0) {
                 return;
             }
-            if (groups.size() > 1) {
-                for (V1ResourceGroup g : groups) {
-                    this.eventRecorder.event(
-                            g,
-                            EventType.Warning,
-                            EventConstants.REASON_NAMESPACE_CONFLICT, MSG_NAMESPACE_BELONGS_TO_MULTIPLE_GROUPS,
-                            ReconcilerUtil.getName(obj));
-                }
-            }
-            String roleName = this.roleNameUtil.buildRoleName(ReconcilerUtil.getName(groups.get(0)));
-            Request request = new Request(ReconcilerUtil.getName(obj), roleName);
-            this.queue.add(request);
+            groups.stream()
+                    .map(group -> new Request(ReconcilerUtil.getName(obj), this.roleNameUtil.buildRoleName(ReconcilerUtil.getName(group))))
+                    .forEach(this.queue::add);
         }
 
         @Override

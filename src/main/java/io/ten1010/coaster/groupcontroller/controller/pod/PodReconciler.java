@@ -7,6 +7,7 @@ import io.kubernetes.client.extended.event.legacy.EventRecorder;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
@@ -57,17 +58,16 @@ public class PodReconciler implements Reconciler {
             }
             log.debug("Pod [{}] founded while reconciling\n{}", podKey, pod.toString());
 
-            List<V1ResourceGroup> groups;
-            try {
-                groups = this.groupResolver.resolve(pod);
-            } catch (GroupResolver.NamespaceConflictException e) {
-                ReconcilerUtil.issueWarningEvents(e, this.eventRecorder);
-                return new Result(true, INVALID_STATE_REQUEUE_DURATION);
-            }
-
+            List<V1ResourceGroup> groups = this.groupResolver.resolve(pod);
             List<V1Toleration> allTolerations = ReconcilerUtil.getTolerations(pod);
             List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(allTolerations, groups);
-            if (new HashSet<>(allTolerations).equals(new HashSet<>(reconciledTolerations))) {
+            if (!new HashSet<>(allTolerations).equals(new HashSet<>(reconciledTolerations))) {
+                deletePod(ReconcilerUtil.getNamespace(pod), ReconcilerUtil.getName(pod));
+                return new Result(false);
+            }
+            V1Affinity allAffinities = ReconcilerUtil.getAffinity(pod);
+            V1Affinity reconciledAffinities = ReconcilerUtil.reconcileAffinity(allAffinities, groups);
+            if (allAffinities.equals(reconciledAffinities)) {
                 return new Result(false);
             }
             deletePod(ReconcilerUtil.getNamespace(pod), ReconcilerUtil.getName(pod));
