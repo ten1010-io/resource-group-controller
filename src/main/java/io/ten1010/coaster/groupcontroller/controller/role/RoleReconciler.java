@@ -24,7 +24,6 @@ public class RoleReconciler implements Reconciler {
 
     public static final Duration API_CONFLICT_REQUEUE_DURATION = Duration.ofSeconds(5);
     public static final Duration API_FAIL_REQUEUE_DURATION = Duration.ofSeconds(60);
-
     private static final List<V1PolicyRule> RULES;
 
     static {
@@ -134,7 +133,7 @@ public class RoleReconciler implements Reconciler {
     }
 
     /**
-     * Reconcile given role based on {@link Request} to ensure its namespace and its policy compared with {@link V1ResourceGroup}.
+     * Reconcile given role from {@link V1ResourceGroup} of request to ensure its policy rules.
      * @param request the reconcile request which triggered by watch events
      * @return the result
      */
