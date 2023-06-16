@@ -12,6 +12,10 @@ spec:
       labels:
         app: resource-group-controller
     spec:
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
       serviceAccountName: resource-group-controller
       automountServiceAccountToken: true
       containers:
