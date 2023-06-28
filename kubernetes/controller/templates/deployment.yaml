@@ -12,6 +12,14 @@ spec:
       labels:
         app: resource-group-controller
     spec:
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
       tolerations:
         - key: "node-role.kubernetes.io/control-plane"
           operator: "Exists"
