@@ -38,3 +38,6 @@ build/
 *.prefs
 .metadata/
 .factorypath
+
+### Macbook ###
+.DS_Store
