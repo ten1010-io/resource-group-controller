@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 
-public class LogUtil {
+public final class LogUtil {
 
     public static String buildApiExceptionDetailLog(ApiException e, boolean includeStackTrace) {
         StringBuilder sb = new StringBuilder();
@@ -48,6 +48,10 @@ public class LogUtil {
                 .append("\n");
 
         return sb.toString();
+    }
+
+    private LogUtil() {
+        throw new UnsupportedOperationException();
     }
 
 }
