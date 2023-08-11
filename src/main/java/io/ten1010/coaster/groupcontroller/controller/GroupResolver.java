@@ -2,12 +2,11 @@ package io.ten1010.coaster.groupcontroller.controller;
 
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1DaemonSet;
-import io.kubernetes.client.openapi.models.V1OwnerReference;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.ten1010.coaster.groupcontroller.core.IndexNameConstants;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
+import io.ten1010.coaster.groupcontroller.core.PodUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
-import org.javatuples.Pair;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,25 +14,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class GroupResolver {
-
-    public static Pair<Boolean, V1OwnerReference> isDaemonSetPod(V1Pod pod) {
-        if (pod.getMetadata() == null || pod.getMetadata().getOwnerReferences() == null) {
-            return Pair.with(false, null);
-        }
-        List<V1OwnerReference> references = pod.getMetadata().getOwnerReferences();
-        Optional<V1OwnerReference> daemonSetRefOpt = references.stream()
-                .filter(e -> {
-                    if (!e.getKind().equals("DaemonSet")) {
-                        return false;
-                    }
-                    if (!e.getApiVersion().equals("apps/v1")) {
-                        return false;
-                    }
-                    return e.getController();
-                })
-                .findAny();
-        return Pair.with(daemonSetRefOpt.isPresent(), daemonSetRefOpt.orElse(null));
-    }
 
     public static class NamespaceConflictException extends Exception {
 
@@ -64,13 +44,12 @@ public class GroupResolver {
     public List<V1ResourceGroup> resolve(V1Pod pod) throws NamespaceConflictException {
         List<V1ResourceGroup> groupsContainingNamespace = resolve(ReconcilerUtil.getNamespace(pod)).stream()
                 .collect(Collectors.toList());
-        Pair<Boolean, V1OwnerReference> result = isDaemonSetPod(pod);
-        if (!result.getValue0()) {
+        if (!PodUtil.isDaemonSetPod(pod)) {
             return groupsContainingNamespace;
         }
         List<V1ResourceGroup> groupsContainingDaemonSet = this.groupIndexer.byIndex(
                 IndexNameConstants.BY_DAEMON_SET_KEY_TO_GROUP_OBJECT,
-                KeyUtil.buildKey(ReconcilerUtil.getNamespace(pod), result.getValue1().getName()));
+                KeyUtil.buildKey(ReconcilerUtil.getNamespace(pod), PodUtil.getDaemonSetOwnerReference(pod).getName()));
 
         return Stream.concat(groupsContainingNamespace.stream(), groupsContainingDaemonSet.stream())
                 .distinct()

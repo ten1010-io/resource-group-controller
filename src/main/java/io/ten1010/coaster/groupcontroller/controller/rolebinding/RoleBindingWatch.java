@@ -8,11 +8,9 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1RoleBinding;
 import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
 import io.ten1010.coaster.groupcontroller.controller.role.RoleNameUtil;
-import org.javatuples.Pair;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
 
@@ -37,8 +35,7 @@ public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
 
         @Override
         public void onAdd(V1RoleBinding obj) {
-            Pair<Boolean, Matcher> result = this.roleNameUtil.checkResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(obj));
-            if (!result.getValue0()) {
+            if (!this.roleNameUtil.isResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(obj))) {
                 return;
             }
 
@@ -47,8 +44,7 @@ public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
 
         @Override
         public void onUpdate(V1RoleBinding oldObj, V1RoleBinding newObj) {
-            Pair<Boolean, Matcher> result = this.roleNameUtil.checkResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(newObj));
-            if (!result.getValue0()) {
+            if (!this.roleNameUtil.isResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(newObj))) {
                 return;
             }
 
@@ -57,8 +53,7 @@ public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
 
         @Override
         public void onDelete(V1RoleBinding obj, boolean deletedFinalStateUnknown) {
-            Pair<Boolean, Matcher> result = this.roleNameUtil.checkResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(obj));
-            if (!result.getValue0()) {
+            if (!this.roleNameUtil.isResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(obj))) {
                 return;
             }
 

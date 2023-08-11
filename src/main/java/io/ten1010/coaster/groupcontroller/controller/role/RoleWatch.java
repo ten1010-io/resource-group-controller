@@ -6,11 +6,9 @@ import io.kubernetes.client.extended.workqueue.WorkQueue;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Role;
-import org.javatuples.Pair;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 public class RoleWatch implements ControllerWatch<V1Role> {
 
@@ -42,8 +40,7 @@ public class RoleWatch implements ControllerWatch<V1Role> {
 
         @Override
         public void onAdd(V1Role obj) {
-            Pair<Boolean, Matcher> result = this.roleNameUtil.checkResourceGroupRoleNameFormat(getName(obj));
-            if (!result.getValue0()) {
+            if (!this.roleNameUtil.isResourceGroupRoleNameFormat(getName(obj))) {
                 return;
             }
 
@@ -52,8 +49,7 @@ public class RoleWatch implements ControllerWatch<V1Role> {
 
         @Override
         public void onUpdate(V1Role oldObj, V1Role newObj) {
-            Pair<Boolean, Matcher> result = this.roleNameUtil.checkResourceGroupRoleNameFormat(getName(newObj));
-            if (!result.getValue0()) {
+            if (!this.roleNameUtil.isResourceGroupRoleNameFormat(getName(newObj))) {
                 return;
             }
 
@@ -62,8 +58,7 @@ public class RoleWatch implements ControllerWatch<V1Role> {
 
         @Override
         public void onDelete(V1Role obj, boolean deletedFinalStateUnknown) {
-            Pair<Boolean, Matcher> result = this.roleNameUtil.checkResourceGroupRoleNameFormat(getName(obj));
-            if (!result.getValue0()) {
+            if (!this.roleNameUtil.isResourceGroupRoleNameFormat(getName(obj))) {
                 return;
             }
 

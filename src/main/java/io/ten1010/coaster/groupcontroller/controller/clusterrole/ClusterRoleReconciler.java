@@ -12,13 +12,11 @@ import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
-import org.javatuples.Pair;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 @Slf4j
 public class ClusterRoleReconciler implements Reconciler {
@@ -50,13 +48,6 @@ public class ClusterRoleReconciler implements Reconciler {
         String groupName = ReconcilerUtil.getName(group);
         Objects.requireNonNull(group.getSpec());
         return buildRules(List.of(groupName), group.getSpec().getNodes(), group.getSpec().getNamespaces());
-    }
-
-    private static String getResourceGroupName(Pair<Boolean, Matcher> checkResult) {
-        if (!checkResult.getValue0()) {
-            throw new IllegalArgumentException();
-        }
-        return checkResult.getValue1().group(1);
     }
 
     private static List<V1PolicyRule> getRules(V1ClusterRole clusterRole) {
@@ -103,11 +94,10 @@ public class ClusterRoleReconciler implements Reconciler {
     public Result reconcile(Request request) {
         return this.template.execute(
                 () -> {
-                    Pair<Boolean, Matcher> result = this.clusterRoleNameUtil.checkResourceGroupClusterRoleNameFormat(request.getName());
-                    if (!result.getValue0()) {
+                    if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleNameFormat(request.getName())) {
                         return new Result(false);
                     }
-                    String groupName = getResourceGroupName(result);
+                    String groupName = this.clusterRoleNameUtil.getResourceGroupNameFromClusterRoleName(request.getName());
                     V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteClusterRoleIfExist(request.getName());

@@ -1,7 +1,5 @@
 package io.ten1010.coaster.groupcontroller.controller.role;
 
-import org.javatuples.Pair;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -15,22 +13,32 @@ public class RoleNameUtil {
     public RoleNameUtil() {
     }
 
-    public String buildRoleName(String groupName) {
+    public String buildResourceGroupRoleName(String groupName) {
         return ROLE_NAME_PREFIX + groupName;
     }
 
-    public Pair<Boolean, Matcher> checkResourceGroupRoleNameFormat(String roleName) {
-        Matcher matcher = RESOURCE_GROUP_ROLE_NAME_PATTERN.matcher(roleName);
-        return Pair.with(matcher.matches(), matcher);
+    public boolean isResourceGroupRoleNameFormat(String roleName) {
+        return RESOURCE_GROUP_ROLE_NAME_PATTERN.matcher(roleName).matches();
     }
 
-    public String buildRoleBindingName(String groupName) {
+    public String getResourceGroupNameFromRoleName(String roleName) {
+        Matcher matcher = RESOURCE_GROUP_ROLE_NAME_PATTERN.matcher(roleName);
+        matcher.matches();
+        return matcher.group(1);
+    }
+
+    public String buildResourceGroupRoleBindingName(String groupName) {
         return ROLE_BINDING_NAME_PREFIX + groupName;
     }
 
-    public Pair<Boolean, Matcher> checkResourceGroupRoleBindingNameFormat(String roleBindingName) {
+    public boolean isResourceGroupRoleBindingNameFormat(String roleBindingName) {
+        return RESOURCE_GROUP_ROLE_BINDING_NAME_PATTERN.matcher(roleBindingName).matches();
+    }
+
+    public String getResourceGroupNameFromRoleBindingName(String roleBindingName) {
         Matcher matcher = RESOURCE_GROUP_ROLE_BINDING_NAME_PATTERN.matcher(roleBindingName);
-        return Pair.with(matcher.matches(), matcher);
+        matcher.matches();
+        return matcher.group(1);
     }
 
 }

@@ -6,11 +6,9 @@ import io.kubernetes.client.extended.workqueue.WorkQueue;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1ClusterRole;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import org.javatuples.Pair;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
 
@@ -42,8 +40,7 @@ public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
 
         @Override
         public void onAdd(V1ClusterRole obj) {
-            Pair<Boolean, Matcher> result = this.clusterRoleNameUtil.checkResourceGroupClusterRoleNameFormat(getName(obj));
-            if (!result.getValue0()) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleNameFormat(getName(obj))) {
                 return;
             }
 
@@ -52,8 +49,7 @@ public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
 
         @Override
         public void onUpdate(V1ClusterRole oldObj, V1ClusterRole newObj) {
-            Pair<Boolean, Matcher> result = this.clusterRoleNameUtil.checkResourceGroupClusterRoleNameFormat(getName(newObj));
-            if (!result.getValue0()) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleNameFormat(getName(newObj))) {
                 return;
             }
 
@@ -62,8 +58,7 @@ public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
 
         @Override
         public void onDelete(V1ClusterRole obj, boolean deletedFinalStateUnknown) {
-            Pair<Boolean, Matcher> result = this.clusterRoleNameUtil.checkResourceGroupClusterRoleNameFormat(getName(obj));
-            if (!result.getValue0()) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleNameFormat(getName(obj))) {
                 return;
             }
 

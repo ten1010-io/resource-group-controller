@@ -11,13 +11,11 @@ import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExcep
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
-import org.javatuples.Pair;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 @Slf4j
 public class RoleReconciler implements Reconciler {
@@ -83,13 +81,6 @@ public class RoleReconciler implements Reconciler {
         return List.of(coreApiRule, eventApiRule, batchApiRule, appsApiRule, autoscalingApiRule, poddisruptionbudgetApiRule);
     }
 
-    private static String getResourceGroupName(Pair<Boolean, Matcher> checkResult) {
-        if (!checkResult.getValue0()) {
-            throw new IllegalArgumentException();
-        }
-        return checkResult.getValue1().group(1);
-    }
-
     private static List<V1PolicyRule> getRules(V1Role role) {
         return role.getRules() == null ? new ArrayList<>() : role.getRules();
     }
@@ -135,6 +126,7 @@ public class RoleReconciler implements Reconciler {
 
     /**
      * Reconcile given role based on {@link Request} to ensure its namespace and its policy compared with {@link V1ResourceGroup}.
+     *
      * @param request the reconcile request which triggered by watch events
      * @return the result
      */
@@ -142,15 +134,14 @@ public class RoleReconciler implements Reconciler {
     public Result reconcile(Request request) {
         return this.template.execute(
                 () -> {
-                    Pair<Boolean, Matcher> result = this.roleNameUtil.checkResourceGroupRoleNameFormat(request.getName());
-                    if (!result.getValue0()) {
+                    if (!this.roleNameUtil.isResourceGroupRoleNameFormat(request.getName())) {
                         return new Result(false);
                     }
                     V1Namespace namespace = this.namespaceIndexer.getByKey(KeyUtil.buildKey(request.getNamespace()));
                     if (namespace == null) {
                         return new Result(false);
                     }
-                    String groupName = getResourceGroupName(result);
+                    String groupName = this.roleNameUtil.getResourceGroupNameFromRoleName(request.getName());
                     V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteRoleIfExist(request.getNamespace(), request.getName());
