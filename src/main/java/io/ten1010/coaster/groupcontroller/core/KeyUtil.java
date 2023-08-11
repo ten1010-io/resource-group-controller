@@ -1,6 +1,6 @@
 package io.ten1010.coaster.groupcontroller.core;
 
-public class KeyUtil {
+public final class KeyUtil {
 
     public static String buildKey(String namespace, String name) {
         return namespace + "/" + name;
@@ -8,6 +8,10 @@ public class KeyUtil {
 
     public static String buildKey(String name) {
         return name;
+    }
+
+    private KeyUtil() {
+        throw new UnsupportedOperationException();
     }
 
 }
