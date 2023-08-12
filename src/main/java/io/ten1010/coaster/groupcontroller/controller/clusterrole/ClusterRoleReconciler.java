@@ -73,18 +73,15 @@ public class ClusterRoleReconciler implements Reconciler {
     }
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
-    private ClusterRoleNameUtil clusterRoleNameUtil;
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1ClusterRole> clusterRoleIndexer;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
     public ClusterRoleReconciler(
-            ClusterRoleNameUtil clusterRoleNameUtil,
             Indexer<V1ResourceGroup> groupIndexer,
             Indexer<V1ClusterRole> clusterRoleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         this.template = new KubernetesApiReconcileExceptionHandlingTemplate(API_CONFLICT_REQUEUE_DURATION, API_FAIL_REQUEUE_DURATION);
-        this.clusterRoleNameUtil = clusterRoleNameUtil;
         this.groupIndexer = groupIndexer;
         this.clusterRoleIndexer = clusterRoleIndexer;
         this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
@@ -94,10 +91,10 @@ public class ClusterRoleReconciler implements Reconciler {
     public Result reconcile(Request request) {
         return this.template.execute(
                 () -> {
-                    if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleNameFormat(request.getName())) {
+                    if (!ResourceGroupClusterRoleName.isResourceGroupClusterRoleName(request.getName())) {
                         return new Result(false);
                     }
-                    String groupName = this.clusterRoleNameUtil.getResourceGroupNameFromClusterRoleName(request.getName());
+                    String groupName = ResourceGroupClusterRoleName.fromClusterRoleName(request.getName()).getResourceGroupName();
                     V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteClusterRoleIfExist(request.getName());

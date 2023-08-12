@@ -16,7 +16,6 @@ import io.kubernetes.client.util.generic.GenericKubernetesApi;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.controller.SharedInformerFactoryFactory;
 import io.ten1010.coaster.groupcontroller.controller.clusterrole.ClusterRoleControllerFactory;
-import io.ten1010.coaster.groupcontroller.controller.clusterrole.ClusterRoleNameUtil;
 import io.ten1010.coaster.groupcontroller.controller.clusterrolebinding.ClusterRoleBindingControllerFactory;
 import io.ten1010.coaster.groupcontroller.controller.daemonset.DaemonSetControllerFactory;
 import io.ten1010.coaster.groupcontroller.controller.node.NodeControllerFactory;
@@ -178,7 +177,6 @@ public class ControllerConfiguration {
     @Bean
     public Controller clusterRoleController(
             SharedInformerFactory sharedInformerFactory,
-            ClusterRoleNameUtil clusterRoleNameUtil,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         Indexer<V1ClusterRole> clusterRoleIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1ClusterRole.class)
@@ -189,7 +187,6 @@ public class ControllerConfiguration {
 
         return new ClusterRoleControllerFactory(
                 sharedInformerFactory,
-                clusterRoleNameUtil,
                 groupIndexer,
                 clusterRoleIndexer,
                 rbacAuthorizationV1Api).create();
@@ -198,7 +195,6 @@ public class ControllerConfiguration {
     @Bean
     public Controller clusterRoleBindingController(
             SharedInformerFactory sharedInformerFactory,
-            ClusterRoleNameUtil clusterRoleNameUtil,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1ClusterRoleBinding.class)
@@ -212,7 +208,6 @@ public class ControllerConfiguration {
 
         return new ClusterRoleBindingControllerFactory(
                 sharedInformerFactory,
-                clusterRoleNameUtil,
                 groupIndexer,
                 clusterRoleBindingIndexer,
                 clusterRoleIndexer,
@@ -240,11 +235,6 @@ public class ControllerConfiguration {
                 .getIndexer();
 
         return new GroupResolver(groupIndexer);
-    }
-
-    @Bean
-    public ClusterRoleNameUtil clusterRoleNameUtil() {
-        return new ClusterRoleNameUtil();
     }
 
     @Bean(initMethod = "startRecording", destroyMethod = "shutdown")

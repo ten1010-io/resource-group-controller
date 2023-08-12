@@ -19,7 +19,6 @@ class ClusterRoleReconcilerTest {
 
     Indexer<V1Namespace> namespaceIndexer;
     Indexer<V1ResourceGroup> groupIndexer;
-    ClusterRoleNameUtil clusterRoleNameUtil;
     Indexer<V1ClusterRole> clusterRoleIndexer;
     RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
@@ -27,7 +26,6 @@ class ClusterRoleReconcilerTest {
     void setUp() {
         this.namespaceIndexer = Mockito.mock(Indexer.class);
         this.groupIndexer = Mockito.mock(Indexer.class);
-        this.clusterRoleNameUtil = new ClusterRoleNameUtil();
         this.clusterRoleIndexer = Mockito.mock(Indexer.class);
         this.rbacAuthorizationV1Api = Mockito.mock(RbacAuthorizationV1Api.class);
     }
@@ -44,7 +42,7 @@ class ClusterRoleReconcilerTest {
 
         Mockito.doReturn(group1).when(this.groupIndexer).getByKey("group1");
         Mockito.doReturn(null).when(this.clusterRoleIndexer).getByKey(KeyUtil.buildKey("resource-group-controller.ten1010.io:group1"));
-        ClusterRoleReconciler clusterRoleReconciler = new ClusterRoleReconciler(this.clusterRoleNameUtil, this.groupIndexer, this.clusterRoleIndexer, this.rbacAuthorizationV1Api);
+        ClusterRoleReconciler clusterRoleReconciler = new ClusterRoleReconciler(this.groupIndexer, this.clusterRoleIndexer, this.rbacAuthorizationV1Api);
         clusterRoleReconciler.reconcile(new Request("resource-group-controller.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).createClusterRole(

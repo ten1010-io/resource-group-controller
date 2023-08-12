@@ -8,7 +8,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
-import io.ten1010.coaster.groupcontroller.controller.clusterrole.ClusterRoleNameUtil;
+import io.ten1010.coaster.groupcontroller.controller.clusterrole.ResourceGroupClusterRoleName;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
@@ -60,20 +60,17 @@ public class ClusterRoleBindingReconciler implements Reconciler {
     }
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
-    private ClusterRoleNameUtil clusterRoleNameUtil;
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer;
     private Indexer<V1ClusterRole> clusterRoleIndexer;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
     public ClusterRoleBindingReconciler(
-            ClusterRoleNameUtil clusterRoleNameUtil,
             Indexer<V1ResourceGroup> groupIndexer,
             Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer,
             Indexer<V1ClusterRole> clusterRoleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         this.template = new KubernetesApiReconcileExceptionHandlingTemplate(API_CONFLICT_REQUEUE_DURATION, API_FAIL_REQUEUE_DURATION);
-        this.clusterRoleNameUtil = clusterRoleNameUtil;
         this.groupIndexer = groupIndexer;
         this.clusterRoleBindingIndexer = clusterRoleBindingIndexer;
         this.clusterRoleIndexer = clusterRoleIndexer;
@@ -84,16 +81,16 @@ public class ClusterRoleBindingReconciler implements Reconciler {
     public Result reconcile(Request request) {
         return this.template.execute(
                 () -> {
-                    if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(request.getName())) {
+                    if (!ResourceGroupClusterRoleBindingName.isResourceGroupClusterRoleBindingName(request.getName())) {
                         return new Result(false);
                     }
-                    String groupName = this.clusterRoleNameUtil.getResourceGroupNameFromClusterRoleBindingName(request.getName());
+                    String groupName = ResourceGroupClusterRoleBindingName.fromClusterRoleBindingName(request.getName()).getResourceGroupName();
                     V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteClusterRoleBindingIfExist(request.getName());
                         return new Result(false);
                     }
-                    String clusterRoleName = this.clusterRoleNameUtil.buildResourceGroupClusterRoleName(groupName);
+                    String clusterRoleName = new ResourceGroupClusterRoleName(groupName).getName();
                     V1RoleRef roleRef = buildClusterRoleRef(clusterRoleName);
                     Objects.requireNonNull(group.getSpec());
                     List<V1Subject> subjects = group.getSpec().getSubjects();

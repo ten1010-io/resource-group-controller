@@ -11,19 +11,16 @@ import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 public class ClusterRoleControllerFactory {
 
     private SharedInformerFactory informerFactory;
-    private ClusterRoleNameUtil clusterRoleNameUtil;
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1ClusterRole> clusterRoleIndexer;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
     public ClusterRoleControllerFactory(
             SharedInformerFactory informerFactory,
-            ClusterRoleNameUtil clusterRoleNameUtil,
             Indexer<V1ResourceGroup> groupIndexer,
             Indexer<V1ClusterRole> clusterRoleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         this.informerFactory = informerFactory;
-        this.clusterRoleNameUtil = clusterRoleNameUtil;
         this.groupIndexer = groupIndexer;
         this.clusterRoleIndexer = clusterRoleIndexer;
         this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
@@ -31,9 +28,9 @@ public class ClusterRoleControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
-                .watch(workQueue -> new ResourceGroupWatch(workQueue, this.clusterRoleNameUtil))
-                .watch(workQueue -> new ClusterRoleWatch(workQueue, this.clusterRoleNameUtil))
-                .withReconciler(new ClusterRoleReconciler(this.clusterRoleNameUtil, this.groupIndexer, this.clusterRoleIndexer, this.rbacAuthorizationV1Api))
+                .watch(workQueue -> new ResourceGroupWatch(workQueue))
+                .watch(workQueue -> new ClusterRoleWatch(workQueue))
+                .withReconciler(new ClusterRoleReconciler(this.groupIndexer, this.clusterRoleIndexer, this.rbacAuthorizationV1Api))
                 .build();
     }
 
