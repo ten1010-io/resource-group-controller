@@ -6,8 +6,7 @@ import io.kubernetes.client.extended.workqueue.WorkQueue;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1RoleBinding;
-import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
-import io.ten1010.coaster.groupcontroller.controller.role.RoleNameUtil;
+import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -26,16 +25,14 @@ public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
         }
 
         private WorkQueue<Request> queue;
-        private RoleNameUtil roleNameUtil;
 
-        public EventHandler(WorkQueue<Request> queue, RoleNameUtil roleNameUtil) {
+        public EventHandler(WorkQueue<Request> queue) {
             this.queue = queue;
-            this.roleNameUtil = roleNameUtil;
         }
 
         @Override
         public void onAdd(V1RoleBinding obj) {
-            if (!this.roleNameUtil.isResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(obj))) {
+            if (!ResourceGroupRoleBindingName.isResourceGroupRoleBindingName(K8sObjectUtil.getName(obj))) {
                 return;
             }
 
@@ -44,7 +41,7 @@ public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
 
         @Override
         public void onUpdate(V1RoleBinding oldObj, V1RoleBinding newObj) {
-            if (!this.roleNameUtil.isResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(newObj))) {
+            if (!ResourceGroupRoleBindingName.isResourceGroupRoleBindingName(K8sObjectUtil.getName(newObj))) {
                 return;
             }
 
@@ -53,7 +50,7 @@ public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
 
         @Override
         public void onDelete(V1RoleBinding obj, boolean deletedFinalStateUnknown) {
-            if (!this.roleNameUtil.isResourceGroupRoleBindingNameFormat(ReconcilerUtil.getName(obj))) {
+            if (!ResourceGroupRoleBindingName.isResourceGroupRoleBindingName(K8sObjectUtil.getName(obj))) {
                 return;
             }
 
@@ -63,11 +60,9 @@ public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
     }
 
     private WorkQueue<Request> queue;
-    private RoleNameUtil roleNameUtil;
 
-    public RoleBindingWatch(WorkQueue<Request> queue, RoleNameUtil roleNameUtil) {
+    public RoleBindingWatch(WorkQueue<Request> queue) {
         this.queue = queue;
-        this.roleNameUtil = roleNameUtil;
     }
 
     @Override
@@ -77,7 +72,7 @@ public class RoleBindingWatch implements ControllerWatch<V1RoleBinding> {
 
     @Override
     public ResourceEventHandler<V1RoleBinding> getResourceEventHandler() {
-        return new EventHandler(this.queue, this.roleNameUtil);
+        return new EventHandler(this.queue);
     }
 
     @Override

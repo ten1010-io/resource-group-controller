@@ -20,7 +20,7 @@ class RoleReconcilerTest {
 
     Indexer<V1Namespace> namespaceIndexer;
     Indexer<V1ResourceGroup> groupIndexer;
-    RoleNameUtil roleNameUtil;
+    ResourceGroupRoleName resourceGroupRoleName;
     Indexer<V1Role> roleIndexer;
     RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
@@ -28,7 +28,6 @@ class RoleReconcilerTest {
     void setUp() {
         this.namespaceIndexer = Mockito.mock(Indexer.class);
         this.groupIndexer = Mockito.mock(Indexer.class);
-        this.roleNameUtil = new RoleNameUtil();
         this.roleIndexer = Mockito.mock(Indexer.class);
         this.rbacAuthorizationV1Api = Mockito.mock(RbacAuthorizationV1Api.class);
     }
@@ -52,7 +51,7 @@ class RoleReconcilerTest {
         Mockito.doReturn(group1).when(this.groupIndexer).getByKey("group1");
         Mockito.doReturn(ns1).when(this.namespaceIndexer).getByKey("ns1");
         Mockito.doReturn(null).when(this.roleIndexer).getByKey(KeyUtil.buildKey("ns1", "resource-group-controller.ten1010.io:group1"));
-        RoleReconciler roleReconciler = new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleNameUtil, this.roleIndexer, this.rbacAuthorizationV1Api);
+        RoleReconciler roleReconciler = new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleIndexer, this.rbacAuthorizationV1Api);
         roleReconciler.reconcile(new Request("ns1", "resource-group-controller.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).createNamespacedRole(
@@ -104,7 +103,7 @@ class RoleReconcilerTest {
         Mockito.doReturn(ns1).when(this.namespaceIndexer).getByKey("ns1");
         Mockito.doReturn(role1).when(this.roleIndexer).getByKey(KeyUtil.buildKey("ns1", "resource-group-controller.ten1010.io:group1"));
 
-        RoleReconciler roleReconciler = new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleNameUtil, this.roleIndexer, this.rbacAuthorizationV1Api);
+        RoleReconciler roleReconciler = new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleIndexer, this.rbacAuthorizationV1Api);
         roleReconciler.reconcile(new Request("ns1", "resource-group-controller.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).replaceNamespacedRole(
@@ -178,7 +177,7 @@ class RoleReconcilerTest {
         Mockito.doReturn(null).when(this.groupIndexer).getByKey("group1");
         Mockito.doReturn(ns1).when(this.namespaceIndexer).getByKey("ns1");
         Mockito.doReturn(role1).when(this.roleIndexer).getByKey(KeyUtil.buildKey("ns1", "resource-group-controller.ten1010.io:group1"));
-        RoleReconciler roleReconciler = new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleNameUtil, this.roleIndexer, this.rbacAuthorizationV1Api);
+        RoleReconciler roleReconciler = new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleIndexer, this.rbacAuthorizationV1Api);
         roleReconciler.reconcile(new Request("ns1", "resource-group-controller.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).deleteNamespacedRole(
@@ -234,7 +233,7 @@ class RoleReconcilerTest {
         Mockito.doReturn(ns1).when(this.namespaceIndexer).getByKey("ns1");
         Mockito.doReturn(ns2).when(this.namespaceIndexer).getByKey("ns2");
         Mockito.doReturn(role1).when(this.roleIndexer).getByKey(KeyUtil.buildKey("ns2", "resource-group-controller.ten1010.io:group1"));
-        RoleReconciler roleReconciler = new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleNameUtil, this.roleIndexer, this.rbacAuthorizationV1Api);
+        RoleReconciler roleReconciler = new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleIndexer, this.rbacAuthorizationV1Api);
         roleReconciler.reconcile(new Request("ns2", "resource-group-controller.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).deleteNamespacedRole(

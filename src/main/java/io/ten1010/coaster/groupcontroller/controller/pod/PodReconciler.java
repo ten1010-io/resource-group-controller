@@ -12,7 +12,9 @@ import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
 import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
+import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
+import io.ten1010.coaster.groupcontroller.core.PodUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,6 +45,7 @@ public class PodReconciler implements Reconciler {
 
     /**
      * Reconcile given pod based on {@link Request} to ensure that pods are running with correct tolerations based on Resource Group which pods belong.
+     *
      * @param request the reconcile request, triggered by watch events
      * @return the result
      */
@@ -65,12 +68,12 @@ public class PodReconciler implements Reconciler {
                 return new Result(true, INVALID_STATE_REQUEUE_DURATION);
             }
 
-            List<V1Toleration> allTolerations = ReconcilerUtil.getTolerations(pod);
+            List<V1Toleration> allTolerations = PodUtil.getTolerations(pod);
             List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(allTolerations, groups);
             if (new HashSet<>(allTolerations).equals(new HashSet<>(reconciledTolerations))) {
                 return new Result(false);
             }
-            deletePod(ReconcilerUtil.getNamespace(pod), ReconcilerUtil.getName(pod));
+            deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
             return new Result(false);
         }, request);
     }

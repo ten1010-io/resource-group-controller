@@ -2,10 +2,9 @@ package io.ten1010.coaster.groupcontroller.core;
 
 import io.kubernetes.client.openapi.models.V1OwnerReference;
 import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Toleration;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public final class PodUtil {
 
@@ -43,6 +42,18 @@ public final class PodUtil {
                 })
                 .findAny()
                 .orElseThrow();
+    }
+
+    public static List<V1Toleration> getTolerations(V1Pod pod) {
+        Objects.requireNonNull(pod.getSpec());
+        List<V1Toleration> tolerations = pod.getSpec().getTolerations();
+        return tolerations == null ? new ArrayList<>() : tolerations;
+    }
+
+    public static Map<String, String> getNodeSelector(V1Pod pod) {
+        Objects.requireNonNull(pod.getSpec());
+        Map<String, String> selector = pod.getSpec().getNodeSelector();
+        return selector == null ? new HashMap<>() : selector;
     }
 
     private PodUtil() {

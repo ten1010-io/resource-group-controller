@@ -8,7 +8,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
-import io.ten1010.coaster.groupcontroller.controller.role.RoleNameUtil;
+import io.ten1010.coaster.groupcontroller.controller.role.ResourceGroupRoleName;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +60,6 @@ public class RoleBindingReconciler implements Reconciler {
     }
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
-    private RoleNameUtil roleNameUtil;
     private Indexer<V1Namespace> namespaceIndexer;
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1RoleBinding> roleBindingIndexer;
@@ -70,12 +69,10 @@ public class RoleBindingReconciler implements Reconciler {
     public RoleBindingReconciler(
             Indexer<V1Namespace> namespaceIndexer,
             Indexer<V1ResourceGroup> groupIndexer,
-            RoleNameUtil roleNameUtil,
             Indexer<V1RoleBinding> roleBindingIndexer,
             Indexer<V1Role> roleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         this.template = new KubernetesApiReconcileExceptionHandlingTemplate(API_CONFLICT_REQUEUE_DURATION, API_FAIL_REQUEUE_DURATION);
-        this.roleNameUtil = roleNameUtil;
         this.namespaceIndexer = namespaceIndexer;
         this.groupIndexer = groupIndexer;
         this.roleBindingIndexer = roleBindingIndexer;
@@ -87,14 +84,14 @@ public class RoleBindingReconciler implements Reconciler {
     public Result reconcile(Request request) {
         return this.template.execute(
                 () -> {
-                    if (!this.roleNameUtil.isResourceGroupRoleBindingNameFormat(request.getName())) {
+                    if (!ResourceGroupRoleBindingName.isResourceGroupRoleBindingName(request.getName())) {
                         return new Result(false);
                     }
                     V1Namespace namespace = this.namespaceIndexer.getByKey(KeyUtil.buildKey(request.getNamespace()));
                     if (namespace == null) {
                         return new Result(false);
                     }
-                    String groupName = this.roleNameUtil.getResourceGroupNameFromRoleBindingName(request.getName());
+                    String groupName = ResourceGroupRoleBindingName.fromRoleBindingName(request.getName()).getResourceGroupName();
                     V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteRoleBindingIfExist(request.getNamespace(), request.getName());
@@ -106,7 +103,7 @@ public class RoleBindingReconciler implements Reconciler {
                         deleteRoleBindingIfExist(request.getNamespace(), request.getName());
                         return new Result(false);
                     }
-                    String roleName = this.roleNameUtil.buildResourceGroupRoleName(groupName);
+                    String roleName = new ResourceGroupRoleName(groupName).getName();
                     V1RoleRef roleRef = buildRoleRef(roleName);
                     List<V1Subject> subjects = group.getSpec().getSubjects();
                     V1RoleBinding roleBinding = this.roleBindingIndexer.getByKey(KeyUtil.buildKey(request.getNamespace(), request.getName()));

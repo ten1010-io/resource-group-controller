@@ -1,6 +1,7 @@
 package io.ten1010.coaster.groupcontroller.model;
 
 import org.springframework.lang.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

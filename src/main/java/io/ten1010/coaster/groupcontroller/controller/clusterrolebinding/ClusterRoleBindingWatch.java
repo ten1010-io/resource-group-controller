@@ -6,8 +6,8 @@ import io.kubernetes.client.extended.workqueue.WorkQueue;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBinding;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
-import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
 import io.ten1010.coaster.groupcontroller.controller.clusterrole.ClusterRoleNameUtil;
+import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -35,7 +35,7 @@ public class ClusterRoleBindingWatch implements ControllerWatch<V1ClusterRoleBin
 
         @Override
         public void onAdd(V1ClusterRoleBinding obj) {
-            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(obj))) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(K8sObjectUtil.getName(obj))) {
                 return;
             }
 
@@ -44,7 +44,7 @@ public class ClusterRoleBindingWatch implements ControllerWatch<V1ClusterRoleBin
 
         @Override
         public void onUpdate(V1ClusterRoleBinding oldObj, V1ClusterRoleBinding newObj) {
-            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(newObj))) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(K8sObjectUtil.getName(newObj))) {
                 return;
             }
 
@@ -53,7 +53,7 @@ public class ClusterRoleBindingWatch implements ControllerWatch<V1ClusterRoleBin
 
         @Override
         public void onDelete(V1ClusterRoleBinding obj, boolean deletedFinalStateUnknown) {
-            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(obj))) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(K8sObjectUtil.getName(obj))) {
                 return;
             }
 

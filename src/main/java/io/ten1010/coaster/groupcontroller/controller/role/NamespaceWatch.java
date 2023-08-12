@@ -8,9 +8,9 @@ import io.kubernetes.client.extended.workqueue.WorkQueue;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1Namespace;
-import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
 import io.ten1010.coaster.groupcontroller.core.EventConstants;
 import io.ten1010.coaster.groupcontroller.core.IndexNameConstants;
+import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 
 import java.time.Duration;
@@ -26,23 +26,20 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
 
         private WorkQueue<Request> queue;
         private Indexer<V1ResourceGroup> groupIndexer;
-        private RoleNameUtil roleNameUtil;
         private EventRecorder eventRecorder;
 
         public EventHandler(
                 WorkQueue<Request> queue,
                 Indexer<V1ResourceGroup> groupIndexer,
-                RoleNameUtil roleNameUtil,
                 EventRecorder eventRecorder) {
             this.queue = queue;
             this.groupIndexer = groupIndexer;
-            this.roleNameUtil = roleNameUtil;
             this.eventRecorder = eventRecorder;
         }
 
         @Override
         public void onAdd(V1Namespace obj) {
-            List<V1ResourceGroup> groups = this.groupIndexer.byIndex(IndexNameConstants.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, ReconcilerUtil.getName(obj));
+            List<V1ResourceGroup> groups = this.groupIndexer.byIndex(IndexNameConstants.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(obj));
             if (groups.size() == 0) {
                 return;
             }
@@ -52,11 +49,11 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
                             g,
                             EventType.Warning,
                             EventConstants.REASON_NAMESPACE_CONFLICT, MSG_NAMESPACE_BELONGS_TO_MULTIPLE_GROUPS,
-                            ReconcilerUtil.getName(obj));
+                            K8sObjectUtil.getName(obj));
                 }
             }
-            String roleName = this.roleNameUtil.buildResourceGroupRoleName(ReconcilerUtil.getName(groups.get(0)));
-            Request request = new Request(ReconcilerUtil.getName(obj), roleName);
+            String roleName = new ResourceGroupRoleName(K8sObjectUtil.getName(groups.get(0))).getName();
+            Request request = new Request(K8sObjectUtil.getName(obj), roleName);
             this.queue.add(request);
         }
 
@@ -72,17 +69,14 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
 
     private WorkQueue<Request> queue;
     private Indexer<V1ResourceGroup> groupIndexer;
-    private RoleNameUtil roleNameUtil;
     private EventRecorder eventRecorder;
 
     public NamespaceWatch(
             WorkQueue<Request> queue,
             Indexer<V1ResourceGroup> groupIndexer,
-            RoleNameUtil roleNameUtil,
             EventRecorder eventRecorder) {
         this.queue = queue;
         this.groupIndexer = groupIndexer;
-        this.roleNameUtil = roleNameUtil;
         this.eventRecorder = eventRecorder;
     }
 
@@ -93,7 +87,7 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
 
     @Override
     public ResourceEventHandler<V1Namespace> getResourceEventHandler() {
-        return new EventHandler(this.queue, this.groupIndexer, this.roleNameUtil, this.eventRecorder);
+        return new EventHandler(this.queue, this.groupIndexer, this.eventRecorder);
     }
 
     @Override

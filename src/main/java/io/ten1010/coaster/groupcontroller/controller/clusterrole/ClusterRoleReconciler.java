@@ -8,7 +8,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
-import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
+import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,7 @@ public class ClusterRoleReconciler implements Reconciler {
     }
 
     private static List<V1PolicyRule> buildRules(V1ResourceGroup group) {
-        String groupName = ReconcilerUtil.getName(group);
+        String groupName = K8sObjectUtil.getName(group);
         Objects.requireNonNull(group.getSpec());
         return buildRules(List.of(groupName), group.getSpec().getNodes(), group.getSpec().getNamespaces());
     }

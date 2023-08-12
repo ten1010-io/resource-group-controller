@@ -13,7 +13,6 @@ import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 public class RoleControllerFactory {
 
     private SharedInformerFactory informerFactory;
-    private RoleNameUtil roleNameUtil;
     private Indexer<V1Namespace> namespaceIndexer;
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1Role> roleIndexer;
@@ -22,14 +21,12 @@ public class RoleControllerFactory {
 
     public RoleControllerFactory(
             SharedInformerFactory informerFactory,
-            RoleNameUtil roleNameUtil,
             Indexer<V1Namespace> namespaceIndexer,
             Indexer<V1ResourceGroup> groupIndexer,
             Indexer<V1Role> roleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api,
             EventRecorder eventRecorder) {
         this.informerFactory = informerFactory;
-        this.roleNameUtil = roleNameUtil;
         this.namespaceIndexer = namespaceIndexer;
         this.groupIndexer = groupIndexer;
         this.roleIndexer = roleIndexer;
@@ -39,10 +36,10 @@ public class RoleControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
-                .watch(workQueue -> new ResourceGroupWatch(workQueue, this.roleNameUtil))
-                .watch(workQueue -> new RoleWatch(workQueue, this.roleNameUtil))
-                .watch(workQueue -> new NamespaceWatch(workQueue, this.groupIndexer, this.roleNameUtil, this.eventRecorder))
-                .withReconciler(new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleNameUtil, this.roleIndexer, this.rbacAuthorizationV1Api))
+                .watch(ResourceGroupWatch::new)
+                .watch(RoleWatch::new)
+                .watch(workQueue -> new NamespaceWatch(workQueue, this.groupIndexer, this.eventRecorder))
+                .withReconciler(new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleIndexer, this.rbacAuthorizationV1Api))
                 .build();
     }
 

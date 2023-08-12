@@ -6,7 +6,6 @@ import io.kubernetes.client.extended.controller.reconciler.Request;
 import io.kubernetes.client.extended.workqueue.WorkQueue;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1Subject;
-import io.ten1010.coaster.groupcontroller.controller.role.RoleNameUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 
 import java.time.Duration;
@@ -61,12 +60,14 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
             return !getSubjects(oldObj).equals(getSubjects(newObj));
         }
 
-        private WorkQueue<Request> queue;
-        private RoleNameUtil roleNameUtil;
+        private static Request buildRequest(String groupName, String roleNamespace) {
+            return new Request(roleNamespace, new ResourceGroupRoleBindingName(groupName).getName());
+        }
 
-        public EventHandler(WorkQueue<Request> queue, RoleNameUtil roleNameUtil) {
+        private WorkQueue<Request> queue;
+
+        public EventHandler(WorkQueue<Request> queue) {
             this.queue = queue;
-            this.roleNameUtil = roleNameUtil;
         }
 
         @Override
@@ -97,18 +98,12 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
         public void onDelete(V1ResourceGroup obj, boolean deletedFinalStateUnknown) {
         }
 
-        private Request buildRequest(String groupName, String roleNamespace) {
-            return new Request(roleNamespace, this.roleNameUtil.buildResourceGroupRoleBindingName(groupName));
-        }
-
     }
 
     private WorkQueue<Request> queue;
-    private RoleNameUtil roleNameUtil;
 
-    public ResourceGroupWatch(WorkQueue<Request> queue, RoleNameUtil roleNameUtil) {
+    public ResourceGroupWatch(WorkQueue<Request> queue) {
         this.queue = queue;
-        this.roleNameUtil = roleNameUtil;
     }
 
     @Override
@@ -118,7 +113,7 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
 
     @Override
     public ResourceEventHandler<V1ResourceGroup> getResourceEventHandler() {
-        return new EventHandler(this.queue, this.roleNameUtil);
+        return new EventHandler(this.queue);
     }
 
     @Override
