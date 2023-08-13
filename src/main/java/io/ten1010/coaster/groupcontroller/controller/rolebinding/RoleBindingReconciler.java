@@ -12,14 +12,12 @@ import io.ten1010.coaster.groupcontroller.controller.role.RoleNameUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
-import org.javatuples.Pair;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
 
 @Slf4j
 public class RoleBindingReconciler implements Reconciler {
@@ -33,13 +31,6 @@ public class RoleBindingReconciler implements Reconciler {
                 .withKind("Role")
                 .withName(roleName)
                 .build();
-    }
-
-    private static String getResourceGroupName(Pair<Boolean, Matcher> checkResult) {
-        if (!checkResult.getValue0()) {
-            throw new IllegalArgumentException();
-        }
-        return checkResult.getValue1().group(1);
     }
 
     private static Optional<V1RoleRef> getRoleRef(V1RoleBinding roleBinding) {
@@ -96,15 +87,14 @@ public class RoleBindingReconciler implements Reconciler {
     public Result reconcile(Request request) {
         return this.template.execute(
                 () -> {
-                    Pair<Boolean, Matcher> result = this.roleNameUtil.checkResourceGroupRoleBindingNameFormat(request.getName());
-                    if (!result.getValue0()) {
+                    if (!this.roleNameUtil.isResourceGroupRoleBindingNameFormat(request.getName())) {
                         return new Result(false);
                     }
                     V1Namespace namespace = this.namespaceIndexer.getByKey(KeyUtil.buildKey(request.getNamespace()));
                     if (namespace == null) {
                         return new Result(false);
                     }
-                    String groupName = getResourceGroupName(result);
+                    String groupName = this.roleNameUtil.getResourceGroupNameFromRoleBindingName(request.getName());
                     V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteRoleBindingIfExist(request.getNamespace(), request.getName());
@@ -116,7 +106,7 @@ public class RoleBindingReconciler implements Reconciler {
                         deleteRoleBindingIfExist(request.getNamespace(), request.getName());
                         return new Result(false);
                     }
-                    String roleName = this.roleNameUtil.buildRoleName(groupName);
+                    String roleName = this.roleNameUtil.buildResourceGroupRoleName(groupName);
                     V1RoleRef roleRef = buildRoleRef(roleName);
                     List<V1Subject> subjects = group.getSpec().getSubjects();
                     V1RoleBinding roleBinding = this.roleBindingIndexer.getByKey(KeyUtil.buildKey(request.getNamespace(), request.getName()));

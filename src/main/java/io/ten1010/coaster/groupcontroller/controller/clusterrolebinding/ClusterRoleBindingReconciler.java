@@ -12,14 +12,12 @@ import io.ten1010.coaster.groupcontroller.controller.clusterrole.ClusterRoleName
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
-import org.javatuples.Pair;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.regex.Matcher;
 
 @Slf4j
 public class ClusterRoleBindingReconciler implements Reconciler {
@@ -33,13 +31,6 @@ public class ClusterRoleBindingReconciler implements Reconciler {
                 .withKind("ClusterRole")
                 .withName(clusterRoleName)
                 .build();
-    }
-
-    private static String getResourceGroupName(Pair<Boolean, Matcher> checkResult) {
-        if (!checkResult.getValue0()) {
-            throw new IllegalArgumentException();
-        }
-        return checkResult.getValue1().group(1);
     }
 
     private static Optional<V1RoleRef> getRoleRef(V1ClusterRoleBinding clusterRoleBinding) {
@@ -93,17 +84,16 @@ public class ClusterRoleBindingReconciler implements Reconciler {
     public Result reconcile(Request request) {
         return this.template.execute(
                 () -> {
-                    Pair<Boolean, Matcher> result = this.clusterRoleNameUtil.checkResourceGroupClusterRoleBindingNameFormat(request.getName());
-                    if (!result.getValue0()) {
+                    if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(request.getName())) {
                         return new Result(false);
                     }
-                    String groupName = getResourceGroupName(result);
+                    String groupName = this.clusterRoleNameUtil.getResourceGroupNameFromClusterRoleBindingName(request.getName());
                     V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteClusterRoleBindingIfExist(request.getName());
                         return new Result(false);
                     }
-                    String clusterRoleName = this.clusterRoleNameUtil.buildClusterRoleName(groupName);
+                    String clusterRoleName = this.clusterRoleNameUtil.buildResourceGroupClusterRoleName(groupName);
                     V1RoleRef roleRef = buildClusterRoleRef(clusterRoleName);
                     Objects.requireNonNull(group.getSpec());
                     List<V1Subject> subjects = group.getSpec().getSubjects();

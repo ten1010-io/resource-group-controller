@@ -4,14 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import io.kubernetes.client.openapi.models.V1OwnerReference;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
+import io.ten1010.coaster.groupcontroller.core.PodUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
-import org.javatuples.Pair;
 
 import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
@@ -56,9 +55,8 @@ public class AdmissionReviewService {
             return response;
         }
 
-        Pair<Boolean, V1OwnerReference> result = GroupResolver.isDaemonSetPod(pod);
         Map<String, String> reconciledNodeSelector;
-        if (result.getValue0()) {
+        if (PodUtil.isDaemonSetPod(pod)) {
             reconciledNodeSelector = ReconcilerUtil.getNodeSelector(pod);
         } else {
             if (groups.size() > 1) {

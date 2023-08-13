@@ -72,7 +72,7 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
         }
 
         private Request buildRequest(String groupName, String roleNamespace) {
-            return new Request(roleNamespace, this.roleNameUtil.buildRoleName(groupName));
+            return new Request(roleNamespace, this.roleNameUtil.buildResourceGroupRoleName(groupName));
         }
 
     }

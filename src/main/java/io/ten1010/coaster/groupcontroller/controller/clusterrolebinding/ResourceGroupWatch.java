@@ -41,7 +41,7 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
         }
 
         private Request buildRequest(String groupName) {
-            return new Request(this.clusterRoleNameUtil.buildClusterRoleBindingName(groupName));
+            return new Request(this.clusterRoleNameUtil.buildResourceGroupClusterRoleBindingName(groupName));
         }
 
     }

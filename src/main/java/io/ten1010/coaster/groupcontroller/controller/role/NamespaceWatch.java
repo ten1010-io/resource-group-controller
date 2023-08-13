@@ -55,7 +55,7 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
                             ReconcilerUtil.getName(obj));
                 }
             }
-            String roleName = this.roleNameUtil.buildRoleName(ReconcilerUtil.getName(groups.get(0)));
+            String roleName = this.roleNameUtil.buildResourceGroupRoleName(ReconcilerUtil.getName(groups.get(0)));
             Request request = new Request(ReconcilerUtil.getName(obj), roleName);
             this.queue.add(request);
         }

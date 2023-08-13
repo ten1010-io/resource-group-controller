@@ -8,11 +8,9 @@ import io.kubernetes.client.openapi.models.V1ClusterRoleBinding;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
 import io.ten1010.coaster.groupcontroller.controller.clusterrole.ClusterRoleNameUtil;
-import org.javatuples.Pair;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.regex.Matcher;
 
 public class ClusterRoleBindingWatch implements ControllerWatch<V1ClusterRoleBinding> {
 
@@ -37,8 +35,7 @@ public class ClusterRoleBindingWatch implements ControllerWatch<V1ClusterRoleBin
 
         @Override
         public void onAdd(V1ClusterRoleBinding obj) {
-            Pair<Boolean, Matcher> result = this.clusterRoleNameUtil.checkResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(obj));
-            if (!result.getValue0()) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(obj))) {
                 return;
             }
 
@@ -47,8 +44,7 @@ public class ClusterRoleBindingWatch implements ControllerWatch<V1ClusterRoleBin
 
         @Override
         public void onUpdate(V1ClusterRoleBinding oldObj, V1ClusterRoleBinding newObj) {
-            Pair<Boolean, Matcher> result = this.clusterRoleNameUtil.checkResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(newObj));
-            if (!result.getValue0()) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(newObj))) {
                 return;
             }
 
@@ -57,8 +53,7 @@ public class ClusterRoleBindingWatch implements ControllerWatch<V1ClusterRoleBin
 
         @Override
         public void onDelete(V1ClusterRoleBinding obj, boolean deletedFinalStateUnknown) {
-            Pair<Boolean, Matcher> result = this.clusterRoleNameUtil.checkResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(obj));
-            if (!result.getValue0()) {
+            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleBindingNameFormat(ReconcilerUtil.getName(obj))) {
                 return;
             }
 
