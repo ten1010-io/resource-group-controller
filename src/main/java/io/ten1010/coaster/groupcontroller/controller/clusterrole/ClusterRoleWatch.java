@@ -31,16 +31,14 @@ public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
         }
 
         private WorkQueue<Request> queue;
-        private ClusterRoleNameUtil clusterRoleNameUtil;
 
-        public EventHandler(WorkQueue<Request> queue, ClusterRoleNameUtil clusterRoleNameUtil) {
+        public EventHandler(WorkQueue<Request> queue) {
             this.queue = queue;
-            this.clusterRoleNameUtil = clusterRoleNameUtil;
         }
 
         @Override
         public void onAdd(V1ClusterRole obj) {
-            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleNameFormat(getName(obj))) {
+            if (!ResourceGroupClusterRoleName.isResourceGroupClusterRoleName(getName(obj))) {
                 return;
             }
 
@@ -49,7 +47,7 @@ public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
 
         @Override
         public void onUpdate(V1ClusterRole oldObj, V1ClusterRole newObj) {
-            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleNameFormat(getName(newObj))) {
+            if (!ResourceGroupClusterRoleName.isResourceGroupClusterRoleName(getName(newObj))) {
                 return;
             }
 
@@ -58,7 +56,7 @@ public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
 
         @Override
         public void onDelete(V1ClusterRole obj, boolean deletedFinalStateUnknown) {
-            if (!this.clusterRoleNameUtil.isResourceGroupClusterRoleNameFormat(getName(obj))) {
+            if (!ResourceGroupClusterRoleName.isResourceGroupClusterRoleName(getName(obj))) {
                 return;
             }
 
@@ -68,11 +66,9 @@ public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
     }
 
     private WorkQueue<Request> queue;
-    private ClusterRoleNameUtil clusterRoleNameUtil;
 
-    public ClusterRoleWatch(WorkQueue<Request> queue, ClusterRoleNameUtil clusterRoleNameUtil) {
+    public ClusterRoleWatch(WorkQueue<Request> queue) {
         this.queue = queue;
-        this.clusterRoleNameUtil = clusterRoleNameUtil;
     }
 
     @Override
@@ -82,7 +78,7 @@ public class ClusterRoleWatch implements ControllerWatch<V1ClusterRole> {
 
     @Override
     public ResourceEventHandler<V1ClusterRole> getResourceEventHandler() {
-        return new EventHandler(this.queue, this.clusterRoleNameUtil);
+        return new EventHandler(this.queue);
     }
 
     @Override

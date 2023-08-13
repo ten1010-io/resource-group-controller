@@ -5,7 +5,6 @@ import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
-import io.ten1010.coaster.groupcontroller.controller.clusterrole.ClusterRoleNameUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
@@ -19,7 +18,6 @@ import java.util.List;
 class ClusterRoleBindingReconcilerTest {
 
     Indexer<V1ResourceGroup> groupIndexer;
-    ClusterRoleNameUtil clusterRoleNameUtil;
     Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer;
     Indexer<V1ClusterRole> clusterRoleIndexer;
     RbacAuthorizationV1Api rbacAuthorizationV1Api;
@@ -27,7 +25,6 @@ class ClusterRoleBindingReconcilerTest {
     @BeforeEach
     void setUp() {
         this.groupIndexer = Mockito.mock(Indexer.class);
-        this.clusterRoleNameUtil = new ClusterRoleNameUtil();
         this.clusterRoleBindingIndexer = Mockito.mock(Indexer.class);
         this.clusterRoleIndexer = Mockito.mock(Indexer.class);
         this.rbacAuthorizationV1Api = Mockito.mock(RbacAuthorizationV1Api.class);
@@ -52,7 +49,6 @@ class ClusterRoleBindingReconcilerTest {
         Mockito.doReturn(null).when(this.clusterRoleBindingIndexer).getByKey(KeyUtil.buildKey("resource-group-controller.ten1010.io:group1"));
         Mockito.doReturn(new V1ClusterRole()).when(this.clusterRoleIndexer).getByKey(KeyUtil.buildKey("resource-group-controller.ten1010.io:group1"));
         ClusterRoleBindingReconciler clusterRoleBindingReconciler = new ClusterRoleBindingReconciler(
-                this.clusterRoleNameUtil,
                 this.groupIndexer,
                 this.clusterRoleBindingIndexer,
                 this.clusterRoleIndexer,

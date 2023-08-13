@@ -15,12 +15,14 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
 
     public static class EventHandler implements ResourceEventHandler<V1ResourceGroup> {
 
-        private WorkQueue<Request> queue;
-        private ClusterRoleNameUtil clusterRoleNameUtil;
+        private static Request buildRequest(String groupName) {
+            return new Request(new ResourceGroupClusterRoleName(groupName).getName());
+        }
 
-        public EventHandler(WorkQueue<Request> queue, ClusterRoleNameUtil clusterRoleNameUtil) {
+        private WorkQueue<Request> queue;
+
+        public EventHandler(WorkQueue<Request> queue) {
             this.queue = queue;
-            this.clusterRoleNameUtil = clusterRoleNameUtil;
         }
 
         @Override
@@ -39,18 +41,12 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
         public void onDelete(V1ResourceGroup obj, boolean deletedFinalStateUnknown) {
         }
 
-        private Request buildRequest(String groupName) {
-            return new Request(this.clusterRoleNameUtil.buildResourceGroupClusterRoleName(groupName));
-        }
-
     }
 
     private WorkQueue<Request> queue;
-    private ClusterRoleNameUtil clusterRoleNameUtil;
 
-    public ResourceGroupWatch(WorkQueue<Request> queue, ClusterRoleNameUtil clusterRoleNameUtil) {
+    public ResourceGroupWatch(WorkQueue<Request> queue) {
         this.queue = queue;
-        this.clusterRoleNameUtil = clusterRoleNameUtil;
     }
 
     @Override
@@ -60,7 +56,7 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
 
     @Override
     public ResourceEventHandler<V1ResourceGroup> getResourceEventHandler() {
-        return new EventHandler(this.queue, this.clusterRoleNameUtil);
+        return new EventHandler(this.queue);
     }
 
     @Override
