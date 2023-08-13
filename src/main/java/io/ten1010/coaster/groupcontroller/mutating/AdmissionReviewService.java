@@ -7,9 +7,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
-import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
+import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
 import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
-import io.ten1010.coaster.groupcontroller.core.PodUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
@@ -56,19 +55,8 @@ public class AdmissionReviewService {
             return response;
         }
 
-        Map<String, String> reconciledNodeSelector;
-        if (PodUtil.isDaemonSetPod(pod)) {
-            reconciledNodeSelector = PodUtil.getNodeSelector(pod);
-        } else {
-            if (groups.size() > 1) {
-                throw new RuntimeException("More than 1 resource groups found for pod though it's not daemon set pod");
-            }
-            reconciledNodeSelector = ReconcilerUtil.reconcileNodeSelector(
-                    PodUtil.getNodeSelector(pod),
-                    groups.size() == 1 ? groups.get(0) : null);
-        }
-
-        List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(PodUtil.getTolerations(pod), groups);
+        Map<String, String> reconciledNodeSelector = Reconciliation.reconcileNodeSelector(pod, groups);
+        List<V1Toleration> reconciledTolerations = Reconciliation.reconcileTolerations(pod, groups);
 
         List<ReplaceJsonPatchElement> jsonPatch = List.of(
                 buildReplaceJsonPatchElement(reconciledNodeSelector),

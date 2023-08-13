@@ -13,13 +13,14 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
-import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
+import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
+import io.ten1010.coaster.groupcontroller.core.DaemonSetUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,17 +30,6 @@ public class DaemonSetReconciler implements Reconciler {
     public static final Duration INVALID_STATE_REQUEUE_DURATION = Duration.ofSeconds(60);
     public static final Duration API_CONFLICT_REQUEUE_DURATION = Duration.ofSeconds(5);
     public static final Duration API_FAIL_REQUEUE_DURATION = Duration.ofSeconds(60);
-
-    static List<V1Toleration> getTolerations(V1DaemonSet daemonSet) {
-        if (daemonSet.getSpec() == null ||
-                daemonSet.getSpec().getTemplate() == null ||
-                daemonSet.getSpec().getTemplate().getSpec() == null ||
-                daemonSet.getSpec().getTemplate().getSpec().getTolerations() == null) {
-            return new ArrayList<>();
-        }
-
-        return daemonSet.getSpec().getTemplate().getSpec().getTolerations();
-    }
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
     private Indexer<V1DaemonSet> daemonSetIndexer;
@@ -71,13 +61,12 @@ public class DaemonSetReconciler implements Reconciler {
                     try {
                         groups = this.groupResolver.resolve(daemonSet);
                     } catch (GroupResolver.NamespaceConflictException e) {
-                        ReconcilerUtil.issueWarningEvents(e, this.eventRecorder);
+                        GroupResolver.issueNamespaceConflictWarningEvents(e, this.eventRecorder);
                         return new Result(true, INVALID_STATE_REQUEUE_DURATION);
                     }
 
-                    List<V1Toleration> tolerations = getTolerations(daemonSet);
-                    List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(tolerations, groups);
-                    if (tolerations.equals(reconciledTolerations)) {
+                    List<V1Toleration> reconciledTolerations = Reconciliation.reconcileTolerations(daemonSet, groups);
+                    if (new HashSet<>(DaemonSetUtil.getTolerations(daemonSet)).equals(new HashSet<>(reconciledTolerations))) {
                         return new Result(false);
                     }
                     updateDaemonSet(daemonSet, reconciledTolerations);
