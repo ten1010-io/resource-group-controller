@@ -7,6 +7,7 @@ import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.models.V1DaemonSet;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Toleration;
+import io.ten1010.coaster.groupcontroller.core.DaemonSetUtil;
 
 import java.time.Duration;
 import java.util.List;
@@ -38,8 +39,8 @@ public class DaemonSetWatch implements ControllerWatch<V1DaemonSet> {
 
         @Override
         public void onUpdate(V1DaemonSet oldObj, V1DaemonSet newObj) {
-            List<V1Toleration> oldTolerations = DaemonSetReconciler.getTolerations(oldObj);
-            List<V1Toleration> newTolerations = DaemonSetReconciler.getTolerations(newObj);
+            List<V1Toleration> oldTolerations = DaemonSetUtil.getTolerations(oldObj);
+            List<V1Toleration> newTolerations = DaemonSetUtil.getTolerations(newObj);
             if (oldTolerations.equals(newTolerations)) {
                 return;
             }

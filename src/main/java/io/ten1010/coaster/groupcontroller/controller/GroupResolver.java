@@ -1,12 +1,11 @@
 package io.ten1010.coaster.groupcontroller.controller;
 
+import io.kubernetes.client.extended.event.EventType;
+import io.kubernetes.client.extended.event.legacy.EventRecorder;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1DaemonSet;
 import io.kubernetes.client.openapi.models.V1Pod;
-import io.ten1010.coaster.groupcontroller.core.IndexNameConstants;
-import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
-import io.ten1010.coaster.groupcontroller.core.KeyUtil;
-import io.ten1010.coaster.groupcontroller.core.PodUtil;
+import io.ten1010.coaster.groupcontroller.core.*;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 
 import java.util.List;
@@ -15,6 +14,19 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class GroupResolver {
+
+    private static final String MSG_NAMESPACE_BELONGS_TO_MULTIPLE_GROUPS = "Namespace [%s] belongs to multiple groups";
+
+    public static void issueNamespaceConflictWarningEvents(GroupResolver.NamespaceConflictException e, EventRecorder eventRecorder) {
+        for (V1ResourceGroup g : e.getGroups()) {
+            eventRecorder.event(
+                    g,
+                    EventType.Warning,
+                    EventConstants.REASON_NAMESPACE_CONFLICT,
+                    MSG_NAMESPACE_BELONGS_TO_MULTIPLE_GROUPS,
+                    e.getNamespace());
+        }
+    }
 
     public static class NamespaceConflictException extends Exception {
 

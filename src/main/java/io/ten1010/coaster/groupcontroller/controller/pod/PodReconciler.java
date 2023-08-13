@@ -11,7 +11,7 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
-import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
+import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
 import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.core.PodUtil;
@@ -64,13 +64,12 @@ public class PodReconciler implements Reconciler {
             try {
                 groups = this.groupResolver.resolve(pod);
             } catch (GroupResolver.NamespaceConflictException e) {
-                ReconcilerUtil.issueWarningEvents(e, this.eventRecorder);
+                GroupResolver.issueNamespaceConflictWarningEvents(e, this.eventRecorder);
                 return new Result(true, INVALID_STATE_REQUEUE_DURATION);
             }
 
-            List<V1Toleration> allTolerations = PodUtil.getTolerations(pod);
-            List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(allTolerations, groups);
-            if (new HashSet<>(allTolerations).equals(new HashSet<>(reconciledTolerations))) {
+            List<V1Toleration> reconciledTolerations = Reconciliation.reconcileTolerations(pod, groups);
+            if (new HashSet<>(PodUtil.getTolerations(pod)).equals(new HashSet<>(reconciledTolerations))) {
                 return new Result(false);
             }
             deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
