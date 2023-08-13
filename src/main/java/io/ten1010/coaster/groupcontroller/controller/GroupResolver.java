@@ -4,6 +4,7 @@ import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1DaemonSet;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.ten1010.coaster.groupcontroller.core.IndexNameConstants;
+import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.core.PodUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
@@ -42,14 +43,14 @@ public class GroupResolver {
     }
 
     public List<V1ResourceGroup> resolve(V1Pod pod) throws NamespaceConflictException {
-        List<V1ResourceGroup> groupsContainingNamespace = resolve(ReconcilerUtil.getNamespace(pod)).stream()
+        List<V1ResourceGroup> groupsContainingNamespace = resolve(K8sObjectUtil.getNamespace(pod)).stream()
                 .collect(Collectors.toList());
         if (!PodUtil.isDaemonSetPod(pod)) {
             return groupsContainingNamespace;
         }
         List<V1ResourceGroup> groupsContainingDaemonSet = this.groupIndexer.byIndex(
                 IndexNameConstants.BY_DAEMON_SET_KEY_TO_GROUP_OBJECT,
-                KeyUtil.buildKey(ReconcilerUtil.getNamespace(pod), PodUtil.getDaemonSetOwnerReference(pod).getName()));
+                KeyUtil.buildKey(K8sObjectUtil.getNamespace(pod), PodUtil.getDaemonSetOwnerReference(pod).getName()));
 
         return Stream.concat(groupsContainingNamespace.stream(), groupsContainingDaemonSet.stream())
                 .distinct()
@@ -57,11 +58,11 @@ public class GroupResolver {
     }
 
     public List<V1ResourceGroup> resolve(V1DaemonSet daemonSet) throws NamespaceConflictException {
-        List<V1ResourceGroup> groupsContainingNamespace = resolve(ReconcilerUtil.getNamespace(daemonSet)).stream()
+        List<V1ResourceGroup> groupsContainingNamespace = resolve(K8sObjectUtil.getNamespace(daemonSet)).stream()
                 .collect(Collectors.toList());
         List<V1ResourceGroup> groupsContainingDaemonSet = this.groupIndexer.byIndex(
                 IndexNameConstants.BY_DAEMON_SET_KEY_TO_GROUP_OBJECT,
-                KeyUtil.buildKey(ReconcilerUtil.getNamespace(daemonSet), ReconcilerUtil.getName(daemonSet)));
+                KeyUtil.buildKey(K8sObjectUtil.getNamespace(daemonSet), K8sObjectUtil.getName(daemonSet)));
 
         return Stream.concat(groupsContainingNamespace.stream(), groupsContainingDaemonSet.stream())
                 .distinct()

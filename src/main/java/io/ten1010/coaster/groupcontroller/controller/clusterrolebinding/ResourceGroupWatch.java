@@ -4,8 +4,8 @@ import io.kubernetes.client.extended.controller.ControllerWatch;
 import io.kubernetes.client.extended.controller.reconciler.Request;
 import io.kubernetes.client.extended.workqueue.WorkQueue;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
 import io.ten1010.coaster.groupcontroller.controller.clusterrole.ClusterRoleNameUtil;
+import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 
 import java.time.Duration;
@@ -26,13 +26,13 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
 
         @Override
         public void onAdd(V1ResourceGroup obj) {
-            String groupName = ReconcilerUtil.getName(obj);
+            String groupName = K8sObjectUtil.getName(obj);
             this.queue.add(buildRequest(groupName));
         }
 
         @Override
         public void onUpdate(V1ResourceGroup oldObj, V1ResourceGroup newObj) {
-            String groupName = ReconcilerUtil.getName(newObj);
+            String groupName = K8sObjectUtil.getName(newObj);
             this.queue.add(buildRequest(groupName));
         }
 

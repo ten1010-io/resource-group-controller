@@ -8,6 +8,7 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.controller.ReconcilerUtil;
+import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.core.PodUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +49,7 @@ public class AdmissionReviewService {
 
             V1AdmissionReviewResponse.Status status = new V1AdmissionReviewResponse.Status();
             status.setCode(HttpURLConnection.HTTP_CONFLICT);
-            status.setMessage(String.format("Namespace [%s] belongs to multiple groups", ReconcilerUtil.getName(pod)));
+            status.setMessage(String.format("Namespace [%s] belongs to multiple groups", K8sObjectUtil.getName(pod)));
 
             response.setStatus(status);
 
@@ -57,17 +58,17 @@ public class AdmissionReviewService {
 
         Map<String, String> reconciledNodeSelector;
         if (PodUtil.isDaemonSetPod(pod)) {
-            reconciledNodeSelector = ReconcilerUtil.getNodeSelector(pod);
+            reconciledNodeSelector = PodUtil.getNodeSelector(pod);
         } else {
             if (groups.size() > 1) {
                 throw new RuntimeException("More than 1 resource groups found for pod though it's not daemon set pod");
             }
             reconciledNodeSelector = ReconcilerUtil.reconcileNodeSelector(
-                    ReconcilerUtil.getNodeSelector(pod),
+                    PodUtil.getNodeSelector(pod),
                     groups.size() == 1 ? groups.get(0) : null);
         }
 
-        List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(ReconcilerUtil.getTolerations(pod), groups);
+        List<V1Toleration> reconciledTolerations = ReconcilerUtil.reconcileTolerations(PodUtil.getTolerations(pod), groups);
 
         List<ReplaceJsonPatchElement> jsonPatch = List.of(
                 buildReplaceJsonPatchElement(reconciledNodeSelector),

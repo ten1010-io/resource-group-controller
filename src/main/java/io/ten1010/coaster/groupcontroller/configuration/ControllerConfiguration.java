@@ -21,8 +21,8 @@ import io.ten1010.coaster.groupcontroller.controller.clusterrolebinding.ClusterR
 import io.ten1010.coaster.groupcontroller.controller.daemonset.DaemonSetControllerFactory;
 import io.ten1010.coaster.groupcontroller.controller.node.NodeControllerFactory;
 import io.ten1010.coaster.groupcontroller.controller.pod.PodControllerFactory;
+import io.ten1010.coaster.groupcontroller.controller.role.ResourceGroupRoleName;
 import io.ten1010.coaster.groupcontroller.controller.role.RoleControllerFactory;
-import io.ten1010.coaster.groupcontroller.controller.role.RoleNameUtil;
 import io.ten1010.coaster.groupcontroller.controller.rolebinding.RoleBindingControllerFactory;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupList;
@@ -125,7 +125,6 @@ public class ControllerConfiguration {
     @Bean
     public Controller roleController(
             SharedInformerFactory sharedInformerFactory,
-            RoleNameUtil roleNameUtil,
             RbacAuthorizationV1Api rbacAuthorizationV1Api,
             EventRecorder eventRecorder) {
         Indexer<V1Role> roleIndexer = sharedInformerFactory
@@ -140,7 +139,6 @@ public class ControllerConfiguration {
 
         return new RoleControllerFactory(
                 sharedInformerFactory,
-                roleNameUtil,
                 namespaceIndexer,
                 groupIndexer,
                 roleIndexer,
@@ -151,7 +149,7 @@ public class ControllerConfiguration {
     @Bean
     public Controller roleBindingController(
             SharedInformerFactory sharedInformerFactory,
-            RoleNameUtil roleNameUtil,
+            ResourceGroupRoleName resourceGroupRoleName,
             RbacAuthorizationV1Api rbacAuthorizationV1Api,
             EventRecorder eventRecorder) {
         Indexer<V1RoleBinding> roleBindingIndexer = sharedInformerFactory
@@ -169,7 +167,6 @@ public class ControllerConfiguration {
 
         return new RoleBindingControllerFactory(
                 sharedInformerFactory,
-                roleNameUtil,
                 namespaceIndexer,
                 groupIndexer,
                 roleBindingIndexer,
@@ -243,11 +240,6 @@ public class ControllerConfiguration {
                 .getIndexer();
 
         return new GroupResolver(groupIndexer);
-    }
-
-    @Bean
-    public RoleNameUtil roleNameUtil() {
-        return new RoleNameUtil();
     }
 
     @Bean

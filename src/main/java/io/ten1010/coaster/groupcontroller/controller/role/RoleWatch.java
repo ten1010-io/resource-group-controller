@@ -31,16 +31,14 @@ public class RoleWatch implements ControllerWatch<V1Role> {
         }
 
         private WorkQueue<Request> queue;
-        private RoleNameUtil roleNameUtil;
 
-        public EventHandler(WorkQueue<Request> queue, RoleNameUtil roleNameUtil) {
+        public EventHandler(WorkQueue<Request> queue) {
             this.queue = queue;
-            this.roleNameUtil = roleNameUtil;
         }
 
         @Override
         public void onAdd(V1Role obj) {
-            if (!this.roleNameUtil.isResourceGroupRoleNameFormat(getName(obj))) {
+            if (!ResourceGroupRoleName.isResourceGroupRoleName(getName(obj))) {
                 return;
             }
 
@@ -49,7 +47,7 @@ public class RoleWatch implements ControllerWatch<V1Role> {
 
         @Override
         public void onUpdate(V1Role oldObj, V1Role newObj) {
-            if (!this.roleNameUtil.isResourceGroupRoleNameFormat(getName(newObj))) {
+            if (!ResourceGroupRoleName.isResourceGroupRoleName(getName(newObj))) {
                 return;
             }
 
@@ -58,7 +56,7 @@ public class RoleWatch implements ControllerWatch<V1Role> {
 
         @Override
         public void onDelete(V1Role obj, boolean deletedFinalStateUnknown) {
-            if (!this.roleNameUtil.isResourceGroupRoleNameFormat(getName(obj))) {
+            if (!ResourceGroupRoleName.isResourceGroupRoleName(getName(obj))) {
                 return;
             }
 
@@ -68,11 +66,9 @@ public class RoleWatch implements ControllerWatch<V1Role> {
     }
 
     private WorkQueue<Request> queue;
-    private RoleNameUtil roleNameUtil;
 
-    public RoleWatch(WorkQueue<Request> queue, RoleNameUtil roleNameUtil) {
+    public RoleWatch(WorkQueue<Request> queue) {
         this.queue = queue;
-        this.roleNameUtil = roleNameUtil;
     }
 
     @Override
@@ -82,7 +78,7 @@ public class RoleWatch implements ControllerWatch<V1Role> {
 
     @Override
     public ResourceEventHandler<V1Role> getResourceEventHandler() {
-        return new EventHandler(this.queue, this.roleNameUtil);
+        return new EventHandler(this.queue);
     }
 
     @Override

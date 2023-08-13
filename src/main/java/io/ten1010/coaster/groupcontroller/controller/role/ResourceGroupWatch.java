@@ -42,11 +42,9 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
         }
 
         private WorkQueue<Request> queue;
-        private RoleNameUtil roleNameUtil;
 
-        public EventHandler(WorkQueue<Request> queue, RoleNameUtil roleNameUtil) {
+        public EventHandler(WorkQueue<Request> queue) {
             this.queue = queue;
-            this.roleNameUtil = roleNameUtil;
         }
 
         @Override
@@ -72,17 +70,16 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
         }
 
         private Request buildRequest(String groupName, String roleNamespace) {
-            return new Request(roleNamespace, this.roleNameUtil.buildResourceGroupRoleName(groupName));
+            String roleName = new ResourceGroupRoleName(groupName).getName();
+            return new Request(roleNamespace, roleName);
         }
 
     }
 
     private WorkQueue<Request> queue;
-    private RoleNameUtil roleNameUtil;
 
-    public ResourceGroupWatch(WorkQueue<Request> queue, RoleNameUtil roleNameUtil) {
+    public ResourceGroupWatch(WorkQueue<Request> queue) {
         this.queue = queue;
-        this.roleNameUtil = roleNameUtil;
     }
 
     @Override
@@ -92,7 +89,7 @@ public class ResourceGroupWatch implements ControllerWatch<V1ResourceGroup> {
 
     @Override
     public ResourceEventHandler<V1ResourceGroup> getResourceEventHandler() {
-        return new EventHandler(this.queue, this.roleNameUtil);
+        return new EventHandler(this.queue);
     }
 
     @Override

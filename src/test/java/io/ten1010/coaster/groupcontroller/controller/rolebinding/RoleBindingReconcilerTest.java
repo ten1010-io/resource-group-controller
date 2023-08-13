@@ -5,7 +5,7 @@ import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
-import io.ten1010.coaster.groupcontroller.controller.role.RoleNameUtil;
+import io.ten1010.coaster.groupcontroller.controller.role.ResourceGroupRoleName;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
@@ -20,7 +20,6 @@ class RoleBindingReconcilerTest {
 
     Indexer<V1Namespace> namespaceIndexer;
     Indexer<V1ResourceGroup> groupIndexer;
-    RoleNameUtil roleNameUtil;
     Indexer<V1RoleBinding> roleBindingIndexer;
     Indexer<V1Role> roleIndexer;
     RbacAuthorizationV1Api rbacAuthorizationV1Api;
@@ -29,7 +28,6 @@ class RoleBindingReconcilerTest {
     void setUp() {
         this.namespaceIndexer = Mockito.mock(Indexer.class);
         this.groupIndexer = Mockito.mock(Indexer.class);
-        this.roleNameUtil = new RoleNameUtil();
         this.roleBindingIndexer = Mockito.mock(Indexer.class);
         this.roleIndexer = Mockito.mock(Indexer.class);
         this.rbacAuthorizationV1Api = Mockito.mock(RbacAuthorizationV1Api.class);
@@ -63,7 +61,6 @@ class RoleBindingReconcilerTest {
         RoleBindingReconciler roleBindingReconciler = new RoleBindingReconciler(
                 this.namespaceIndexer,
                 this.groupIndexer,
-                this.roleNameUtil,
                 this.roleBindingIndexer,
                 this.roleIndexer,
                 this.rbacAuthorizationV1Api);

@@ -104,7 +104,6 @@ public class RoleReconciler implements Reconciler {
     }
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
-    private RoleNameUtil roleNameUtil;
     private Indexer<V1Namespace> namespaceIndexer;
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1Role> roleIndexer;
@@ -113,11 +112,9 @@ public class RoleReconciler implements Reconciler {
     public RoleReconciler(
             Indexer<V1Namespace> namespaceIndexer,
             Indexer<V1ResourceGroup> groupIndexer,
-            RoleNameUtil roleNameUtil,
             Indexer<V1Role> roleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         this.template = new KubernetesApiReconcileExceptionHandlingTemplate(API_CONFLICT_REQUEUE_DURATION, API_FAIL_REQUEUE_DURATION);
-        this.roleNameUtil = roleNameUtil;
         this.namespaceIndexer = namespaceIndexer;
         this.groupIndexer = groupIndexer;
         this.roleIndexer = roleIndexer;
@@ -134,14 +131,14 @@ public class RoleReconciler implements Reconciler {
     public Result reconcile(Request request) {
         return this.template.execute(
                 () -> {
-                    if (!this.roleNameUtil.isResourceGroupRoleNameFormat(request.getName())) {
+                    if (!ResourceGroupRoleName.isResourceGroupRoleName(request.getName())) {
                         return new Result(false);
                     }
                     V1Namespace namespace = this.namespaceIndexer.getByKey(KeyUtil.buildKey(request.getNamespace()));
                     if (namespace == null) {
                         return new Result(false);
                     }
-                    String groupName = this.roleNameUtil.getResourceGroupNameFromRoleName(request.getName());
+                    String groupName = ResourceGroupRoleName.fromRoleName(request.getName()).getResourceGroupName();
                     V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteRoleIfExist(request.getNamespace(), request.getName());
