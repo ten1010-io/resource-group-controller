@@ -58,21 +58,25 @@ public class PodReconciler implements Reconciler {
                 log.debug("Pod [{}] not founded while reconciling", podKey);
                 return new Result(false);
             }
-            log.debug("Pod [{}] founded while reconciling\n{}", podKey, pod.toString());
+            log.debug("Pod [{}] founded while reconciling\n{}", podKey, pod);
 
             List<V1ResourceGroup> groups;
             try {
                 groups = this.groupResolver.resolve(pod);
+                log.debug("GroupResolver resolve Pod [{}] to [{}]", podKey, groups);
             } catch (GroupResolver.NamespaceConflictException e) {
+                log.debug("NamespaceConflictException occurred while GroupResolver resolves Pod [{}]. namespace [{}], groups [{}]", podKey, e.getNamespace(), e.getGroups());
                 GroupResolver.issueNamespaceConflictWarningEvents(e, this.eventRecorder);
                 return new Result(true, INVALID_STATE_REQUEUE_DURATION);
             }
 
             List<V1Toleration> reconciledTolerations = Reconciliation.reconcileTolerations(pod, groups);
+            log.debug("Tolerations [{}] of pod [{}] reconciled to Tolerations [{}]", PodUtil.getTolerations(pod), podKey, reconciledTolerations);
             if (new HashSet<>(PodUtil.getTolerations(pod)).equals(new HashSet<>(reconciledTolerations))) {
                 return new Result(false);
             }
             deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
+            log.debug("Pod [{}] deleted while reconciling", podKey);
             return new Result(false);
         }, request);
     }
