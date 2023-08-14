@@ -33,11 +33,12 @@ public final class Reconciliation {
         if (groups.size() > 1) {
             throw new IllegalArgumentException();
         }
-        if (groups.size() == 0) {
-            return new HashMap<>(PodUtil.getNodeSelector(pod));
-        }
+
         Map<String, String> selectors = new HashMap<>(PodUtil.getNodeSelector(pod));
-        selectors.remove(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
+        if (groups.size() == 0) {
+            selectors.remove(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
+            return selectors;
+        }
         selectors.put(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE, K8sObjectUtil.getName(groups.get(0)));
         return selectors;
     }
