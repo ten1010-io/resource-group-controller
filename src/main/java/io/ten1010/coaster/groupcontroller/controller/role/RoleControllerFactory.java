@@ -38,7 +38,7 @@ public class RoleControllerFactory {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
                 .watch(ResourceGroupWatch::new)
                 .watch(RoleWatch::new)
-                .watch(workQueue -> new NamespaceWatch(workQueue, this.groupIndexer, this.eventRecorder))
+                .watch(workQueue -> new NamespaceWatch(workQueue, this.groupIndexer))
                 .withReconciler(new RoleReconciler(this.namespaceIndexer, this.groupIndexer, this.roleIndexer, this.rbacAuthorizationV1Api))
                 .build();
     }

@@ -4,20 +4,20 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
 import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
-import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.Nullable;
 
-import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 @Slf4j
 public class AdmissionReviewService {
@@ -38,28 +38,12 @@ public class AdmissionReviewService {
         Objects.requireNonNull(pod.getMetadata());
         pod.getMetadata().setNamespace(request.getNamespace());
 
-        List<V1ResourceGroup> groups;
-        try {
-            groups = this.groupResolver.resolve(pod);
-        } catch (GroupResolver.NamespaceConflictException e) {
-            V1AdmissionReviewResponse response = new V1AdmissionReviewResponse();
-            response.setUid(request.getUid());
-            response.setAllowed(false);
-
-            V1AdmissionReviewResponse.Status status = new V1AdmissionReviewResponse.Status();
-            status.setCode(HttpURLConnection.HTTP_CONFLICT);
-            status.setMessage(String.format("Namespace [%s] belongs to multiple groups", K8sObjectUtil.getName(pod)));
-
-            response.setStatus(status);
-
-            return response;
-        }
-
-        Map<String, String> reconciledNodeSelector = Reconciliation.reconcileNodeSelector(pod, groups);
+        List<V1ResourceGroup> groups = this.groupResolver.resolve(pod);
+        Optional<V1Affinity> reconciledAffinity = Reconciliation.reconcileAffinity(pod, groups);
         List<V1Toleration> reconciledTolerations = Reconciliation.reconcileTolerations(pod, groups);
 
         List<ReplaceJsonPatchElement> jsonPatch = List.of(
-                buildReplaceJsonPatchElement(reconciledNodeSelector),
+                buildReplaceJsonPatchElement(reconciledAffinity.orElse(null)),
                 buildReplaceJsonPatchElement(reconciledTolerations));
         String patch = buildPatchString(jsonPatch);
 
@@ -72,8 +56,8 @@ public class AdmissionReviewService {
         return response;
     }
 
-    private ReplaceJsonPatchElement buildReplaceJsonPatchElement(Map<String, String> nodeSelector) {
-        return new ReplaceJsonPatchElement("/spec/nodeSelector", this.mapper.valueToTree(nodeSelector));
+    private ReplaceJsonPatchElement buildReplaceJsonPatchElement(@Nullable V1Affinity affinity) {
+        return new ReplaceJsonPatchElement("/spec/affinity", this.mapper.valueToTree(affinity));
     }
 
     private ReplaceJsonPatchElement buildReplaceJsonPatchElement(List<V1Toleration> tolerations) {

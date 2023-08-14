@@ -1,15 +1,12 @@
 package io.ten1010.coaster.groupcontroller.controller;
 
-import io.kubernetes.client.openapi.models.V1DaemonSet;
-import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1Toleration;
-import io.kubernetes.client.openapi.models.V1TolerationBuilder;
+import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.core.*;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class Reconciliation {
@@ -26,20 +23,46 @@ public final class Reconciliation {
         return tolerations;
     }
 
-    public static Map<String, String> reconcileNodeSelector(V1Pod pod, List<V1ResourceGroup> groups) {
+    public static Optional<V1Affinity> reconcileAffinity(V1Pod pod, List<V1ResourceGroup> groups) {
         if (PodUtil.isDaemonSetPod(pod)) {
-            return new HashMap<>(PodUtil.getNodeSelector(pod));
+            return PodUtil.getAffinity(pod);
         }
-        if (groups.size() > 1) {
-            throw new IllegalArgumentException();
+        Optional<V1Affinity> affinity = PodUtil.getAffinity(pod);
+        List<V1NodeSelectorTerm> terms = new ArrayList<>();
+        if (affinity.isEmpty()) {
+            if (groups.isEmpty()) {
+                return Optional.empty();
+            }
+            terms.addAll(buildResourceGroupExclusiveNodeSelectorTerms(groups));
+            return Optional.of(new V1AffinityBuilder()
+                    .withNewNodeAffinity()
+                    .withNewRequiredDuringSchedulingIgnoredDuringExecution()
+                    .withNodeSelectorTerms(terms)
+                    .endRequiredDuringSchedulingIgnoredDuringExecution()
+                    .endNodeAffinity()
+                    .build());
         }
-        if (groups.size() == 0) {
-            return new HashMap<>(PodUtil.getNodeSelector(pod));
+        V1Affinity clone = new V1AffinityBuilder(affinity.get()).build();
+        terms.addAll(extractNonResourceGroupExclusiveNodeSelectorTerms(clone));
+        terms.addAll(buildResourceGroupExclusiveNodeSelectorTerms(groups));
+        if (clone.getNodeAffinity() == null) {
+            V1NodeAffinity nodeAffinity = new V1NodeAffinityBuilder()
+                    .withNewRequiredDuringSchedulingIgnoredDuringExecution()
+                    .withNodeSelectorTerms(terms)
+                    .endRequiredDuringSchedulingIgnoredDuringExecution()
+                    .build();
+            clone.setNodeAffinity(nodeAffinity);
+            return Optional.of(clone);
         }
-        Map<String, String> selectors = new HashMap<>(PodUtil.getNodeSelector(pod));
-        selectors.remove(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
-        selectors.put(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE, K8sObjectUtil.getName(groups.get(0)));
-        return selectors;
+        if (clone.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution() == null) {
+            V1NodeSelector selector = new V1NodeSelectorBuilder()
+                    .withNodeSelectorTerms(terms)
+                    .build();
+            clone.getNodeAffinity().setRequiredDuringSchedulingIgnoredDuringExecution(selector);
+            return Optional.of(clone);
+        }
+        clone.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution().setNodeSelectorTerms(terms);
+        return Optional.of(clone);
     }
 
     private static List<V1Toleration> removeResourceGroupExclusiveTolerations(List<V1Toleration> tolerations) {
@@ -74,6 +97,46 @@ public final class Reconciliation {
             return false;
         }
         return toleration.getKey().equals(TaintConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
+    }
+
+    private static List<V1NodeSelectorTerm> extractNonResourceGroupExclusiveNodeSelectorTerms(V1Affinity affinity) {
+        if (affinity.getNodeAffinity() == null) {
+            return List.of();
+        }
+        if (affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution() == null) {
+            return List.of();
+        }
+        return affinity.getNodeAffinity()
+                .getRequiredDuringSchedulingIgnoredDuringExecution()
+                .getNodeSelectorTerms()
+                .stream()
+                .filter(term -> term.getMatchExpressions() != null)
+                .filter(term -> term.getMatchExpressions()
+                        .stream()
+                        .noneMatch(Reconciliation::isResourceGroupExclusiveNodeSelectorRequirement))
+                .collect(Collectors.toList());
+    }
+
+    private static List<V1NodeSelectorTerm> buildResourceGroupExclusiveNodeSelectorTerms(List<V1ResourceGroup> groups) {
+        V1NodeSelectorRequirement requirement = new V1NodeSelectorRequirementBuilder()
+                .withKey(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE)
+                .withOperator("In")
+                .withValues(groups.stream()
+                        .map(K8sObjectUtil::getName)
+                        .distinct()
+                        .collect(Collectors.toList()))
+                .build();
+        V1NodeSelectorTerm term = new V1NodeSelectorTermBuilder()
+                .addToMatchExpressions(requirement)
+                .build();
+        return List.of(term);
+    }
+
+    private static boolean isResourceGroupExclusiveNodeSelectorRequirement(V1NodeSelectorRequirement requirement) {
+        if (requirement.getKey() == null) {
+            return false;
+        }
+        return requirement.getKey().equals(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
     }
 
     private Reconciliation() {

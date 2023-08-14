@@ -1,10 +1,14 @@
 package io.ten1010.coaster.groupcontroller.core;
 
+import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1OwnerReference;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 public final class PodUtil {
 
@@ -50,10 +54,13 @@ public final class PodUtil {
         return tolerations == null ? new ArrayList<>() : tolerations;
     }
 
-    public static Map<String, String> getNodeSelector(V1Pod pod) {
+    public static Optional<V1Affinity> getAffinity(V1Pod pod) {
         Objects.requireNonNull(pod.getSpec());
-        Map<String, String> selector = pod.getSpec().getNodeSelector();
-        return selector == null ? new HashMap<>() : selector;
+        V1Affinity affinity = pod.getSpec().getAffinity();
+        if (affinity == null) {
+            return Optional.empty();
+        }
+        return Optional.of(affinity);
     }
 
     private PodUtil() {

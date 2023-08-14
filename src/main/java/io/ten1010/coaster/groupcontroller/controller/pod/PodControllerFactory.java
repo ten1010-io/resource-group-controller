@@ -34,7 +34,7 @@ public class PodControllerFactory {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
                 .watch(workQueue -> new ResourceGroupWatch(workQueue, this.podIndexer))
                 .watch(PodWatch::new)
-                .withReconciler(new PodReconciler(this.podIndexer, this.groupResolver, this.coreV1Api, this.eventRecorder))
+                .withReconciler(new PodReconciler(this.podIndexer, this.groupResolver, this.coreV1Api))
                 .build();
     }
 

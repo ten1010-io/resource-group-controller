@@ -49,16 +49,12 @@ class GroupResolverTest {
                 .endMetadata()
                 .build();
 
-        try {
-            Assertions.assertEquals(List.of(group1), groupResolver.resolve(pod1));
-            Assertions.assertEquals(List.of(), groupResolver.resolve(pod2));
-        } catch (GroupResolver.NamespaceConflictException e) {
-            Assertions.fail();
-        }
+        Assertions.assertEquals(List.of(group1), groupResolver.resolve(pod1));
+        Assertions.assertEquals(List.of(), groupResolver.resolve(pod2));
     }
 
     @Test
-    void should_throw_NamespaceConflictException() {
+    void should_return_groups_having_same_namespace() {
         V1ResourceGroup group1 = new V1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
@@ -90,8 +86,8 @@ class GroupResolverTest {
                 .endMetadata()
                 .build();
 
-        Assertions.assertThrows(GroupResolver.NamespaceConflictException.class, () -> groupResolver.resolve(pod1));
-        Assertions.assertThrows(GroupResolver.NamespaceConflictException.class, () -> groupResolver.resolve(ds1));
+        Assertions.assertEquals(List.of(group1, group2), groupResolver.resolve(pod1));
+        Assertions.assertEquals(List.of(group1, group2), groupResolver.resolve(ds1));
     }
 
     @Test
@@ -132,11 +128,7 @@ class GroupResolverTest {
                 .endMetadata()
                 .build();
 
-        try {
-            Assertions.assertEquals(List.of(group1, group2), groupResolver.resolve(ds1));
-        } catch (GroupResolver.NamespaceConflictException e) {
-            Assertions.fail();
-        }
+        Assertions.assertEquals(List.of(group1, group2), groupResolver.resolve(ds1));
     }
 
 }
