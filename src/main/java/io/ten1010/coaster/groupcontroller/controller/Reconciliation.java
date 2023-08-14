@@ -44,7 +44,19 @@ public final class Reconciliation {
         }
         V1Affinity clone = new V1AffinityBuilder(affinity.get()).build();
         terms.addAll(extractNonResourceGroupExclusiveNodeSelectorTerms(clone));
-        terms.addAll(buildResourceGroupExclusiveNodeSelectorTerms(groups));
+        if (!groups.isEmpty()) {
+            terms.addAll(buildResourceGroupExclusiveNodeSelectorTerms(groups));
+        }
+        if (terms.isEmpty()) {
+            if (clone.getNodeAffinity() == null) {
+                return Optional.of(clone);
+            }
+            if (clone.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution() == null) {
+                return Optional.of(clone);
+            }
+            clone.getNodeAffinity().setRequiredDuringSchedulingIgnoredDuringExecution(null);
+            return Optional.of(clone);
+        }
         if (clone.getNodeAffinity() == null) {
             V1NodeAffinity nodeAffinity = new V1NodeAffinityBuilder()
                     .withNewRequiredDuringSchedulingIgnoredDuringExecution()
