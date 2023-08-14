@@ -56,21 +56,27 @@ public class PodReconciler implements Reconciler {
                 log.debug("Pod [{}] not founded while reconciling", podKey);
                 return new Result(false);
             }
-            log.debug("Pod [{}] founded while reconciling\n{}", podKey, pod.toString());
+            log.debug("Pod [{}] founded while reconciling\n{}", podKey, pod);
 
             List<V1ResourceGroup> groups = this.groupResolver.resolve(pod);
+            log.debug("GroupResolver resolve Pod [{}] to [{}]", podKey, groups);
             List<V1Toleration> reconciledTolerations = Reconciliation.reconcileTolerations(pod, groups);
+            log.debug("Tolerations [{}] of pod [{}] reconciled to Tolerations [{}]", PodUtil.getTolerations(pod), podKey, reconciledTolerations);
             if (!new HashSet<>(PodUtil.getTolerations(pod)).equals(new HashSet<>(reconciledTolerations))) {
                 deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
+                log.debug("Pod [{}] deleted while reconciling because of tolerations", podKey);
                 return new Result(false);
             }
             Optional<V1Affinity> reconciledAffinity = Reconciliation.reconcileAffinity(pod, groups);
+            log.debug("Affinity [{}] of pod [{}] reconciled to Affinity [{}]", PodUtil.getAffinity(pod), podKey, reconciledAffinity);
             if (reconciledAffinity.isEmpty() && PodUtil.getAffinity(pod).isPresent()) {
                 deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
+                log.debug("Pod [{}] deleted while reconciling because of affinity", podKey);
                 return new Result(false);
             }
             if (reconciledAffinity.isPresent() && !reconciledAffinity.get().equals(PodUtil.getAffinity(pod).orElse(null))) {
                 deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
+                log.debug("Pod [{}] deleted while reconciling because of affinity", podKey);
                 return new Result(false);
             }
             return new Result(false);
