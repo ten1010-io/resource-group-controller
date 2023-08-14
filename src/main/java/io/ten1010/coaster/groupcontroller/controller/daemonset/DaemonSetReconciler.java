@@ -3,7 +3,6 @@ package io.ten1010.coaster.groupcontroller.controller.daemonset;
 import io.kubernetes.client.extended.controller.reconciler.Reconciler;
 import io.kubernetes.client.extended.controller.reconciler.Request;
 import io.kubernetes.client.extended.controller.reconciler.Result;
-import io.kubernetes.client.extended.event.legacy.EventRecorder;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
@@ -35,14 +34,12 @@ public class DaemonSetReconciler implements Reconciler {
     private Indexer<V1DaemonSet> daemonSetIndexer;
     private GroupResolver groupResolver;
     private AppsV1Api appsV1Api;
-    private EventRecorder eventRecorder;
 
-    public DaemonSetReconciler(Indexer<V1DaemonSet> daemonSetIndexer, GroupResolver groupResolver, AppsV1Api appsV1Api, EventRecorder eventRecorder) {
+    public DaemonSetReconciler(Indexer<V1DaemonSet> daemonSetIndexer, GroupResolver groupResolver, AppsV1Api appsV1Api) {
         this.template = new KubernetesApiReconcileExceptionHandlingTemplate(API_CONFLICT_REQUEUE_DURATION, API_FAIL_REQUEUE_DURATION);
         this.daemonSetIndexer = daemonSetIndexer;
         this.groupResolver = groupResolver;
         this.appsV1Api = appsV1Api;
-        this.eventRecorder = eventRecorder;
     }
 
     @Override
@@ -57,14 +54,7 @@ public class DaemonSetReconciler implements Reconciler {
                     }
                     log.debug("v [{}] founded while reconciling\n{}", daemonSetKey, daemonSet.toString());
 
-                    List<V1ResourceGroup> groups;
-                    try {
-                        groups = this.groupResolver.resolve(daemonSet);
-                    } catch (GroupResolver.NamespaceConflictException e) {
-                        GroupResolver.issueNamespaceConflictWarningEvents(e, this.eventRecorder);
-                        return new Result(true, INVALID_STATE_REQUEUE_DURATION);
-                    }
-
+                    List<V1ResourceGroup> groups = this.groupResolver.resolve(daemonSet);
                     List<V1Toleration> reconciledTolerations = Reconciliation.reconcileTolerations(daemonSet, groups);
                     if (new HashSet<>(DaemonSetUtil.getTolerations(daemonSet)).equals(new HashSet<>(reconciledTolerations))) {
                         return new Result(false);

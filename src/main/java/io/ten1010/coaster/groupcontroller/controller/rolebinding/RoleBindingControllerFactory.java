@@ -2,7 +2,6 @@ package io.ten1010.coaster.groupcontroller.controller.rolebinding;
 
 import io.kubernetes.client.extended.controller.Controller;
 import io.kubernetes.client.extended.controller.builder.ControllerBuilder;
-import io.kubernetes.client.extended.event.legacy.EventRecorder;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
@@ -19,7 +18,6 @@ public class RoleBindingControllerFactory {
     private Indexer<V1RoleBinding> roleBindingIndexer;
     private Indexer<V1Role> roleIndexer;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
-    private EventRecorder eventRecorder;
 
     public RoleBindingControllerFactory(
             SharedInformerFactory informerFactory,
@@ -27,22 +25,20 @@ public class RoleBindingControllerFactory {
             Indexer<V1ResourceGroup> groupIndexer,
             Indexer<V1RoleBinding> roleBindingIndexer,
             Indexer<V1Role> roleIndexer,
-            RbacAuthorizationV1Api rbacAuthorizationV1Api,
-            EventRecorder eventRecorder) {
+            RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         this.informerFactory = informerFactory;
         this.namespaceIndexer = namespaceIndexer;
         this.groupIndexer = groupIndexer;
         this.roleBindingIndexer = roleBindingIndexer;
         this.roleIndexer = roleIndexer;
         this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
-        this.eventRecorder = eventRecorder;
     }
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
                 .watch(workQueue -> new ResourceGroupWatch(workQueue))
                 .watch(workQueue -> new RoleBindingWatch(workQueue))
-                .watch(workQueue -> new NamespaceWatch(workQueue, this.groupIndexer, this.eventRecorder))
+                .watch(workQueue -> new NamespaceWatch(workQueue, this.groupIndexer))
                 .withReconciler(new RoleBindingReconciler(
                         this.namespaceIndexer,
                         this.groupIndexer,
