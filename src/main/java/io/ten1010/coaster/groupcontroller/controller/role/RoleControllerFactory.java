@@ -2,7 +2,6 @@ package io.ten1010.coaster.groupcontroller.controller.role;
 
 import io.kubernetes.client.extended.controller.Controller;
 import io.kubernetes.client.extended.controller.builder.ControllerBuilder;
-import io.kubernetes.client.extended.event.legacy.EventRecorder;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
@@ -17,21 +16,18 @@ public class RoleControllerFactory {
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1Role> roleIndexer;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
-    private EventRecorder eventRecorder;
 
     public RoleControllerFactory(
             SharedInformerFactory informerFactory,
             Indexer<V1Namespace> namespaceIndexer,
             Indexer<V1ResourceGroup> groupIndexer,
             Indexer<V1Role> roleIndexer,
-            RbacAuthorizationV1Api rbacAuthorizationV1Api,
-            EventRecorder eventRecorder) {
+            RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         this.informerFactory = informerFactory;
         this.namespaceIndexer = namespaceIndexer;
         this.groupIndexer = groupIndexer;
         this.roleIndexer = roleIndexer;
         this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
-        this.eventRecorder = eventRecorder;
     }
 
     public Controller create() {

@@ -94,13 +94,12 @@ public class ControllerConfiguration {
     public Controller podController(
             SharedInformerFactory sharedInformerFactory,
             GroupResolver groupResolver,
-            CoreV1Api coreV1Api,
-            EventRecorder eventRecorder) {
+            CoreV1Api coreV1Api) {
         Indexer<V1Pod> podIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1Pod.class)
                 .getIndexer();
 
-        return new PodControllerFactory(sharedInformerFactory, podIndexer, groupResolver, coreV1Api, eventRecorder)
+        return new PodControllerFactory(sharedInformerFactory, podIndexer, groupResolver, coreV1Api)
                 .create();
     }
 
@@ -123,8 +122,7 @@ public class ControllerConfiguration {
     @Bean
     public Controller roleController(
             SharedInformerFactory sharedInformerFactory,
-            RbacAuthorizationV1Api rbacAuthorizationV1Api,
-            EventRecorder eventRecorder) {
+            RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         Indexer<V1Role> roleIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1Role.class)
                 .getIndexer();
@@ -140,8 +138,7 @@ public class ControllerConfiguration {
                 namespaceIndexer,
                 groupIndexer,
                 roleIndexer,
-                rbacAuthorizationV1Api,
-                eventRecorder).create();
+                rbacAuthorizationV1Api).create();
     }
 
     @Bean

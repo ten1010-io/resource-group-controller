@@ -1,7 +1,6 @@
 package io.ten1010.coaster.groupcontroller.controller.daemonset;
 
 import io.kubernetes.client.extended.controller.reconciler.Request;
-import io.kubernetes.client.extended.event.legacy.EventRecorder;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
@@ -29,14 +28,12 @@ class DaemonSetReconcilerTest {
     Indexer<V1DaemonSet> daemonSetIndexer;
     GroupResolver groupResolver;
     AppsV1Api appsV1Api;
-    EventRecorder eventRecorder;
 
     @BeforeEach
     void setUp() {
         this.daemonSetIndexer = Mockito.mock(Indexer.class);
         this.groupResolver = Mockito.mock(GroupResolver.class);
         this.appsV1Api = Mockito.mock(AppsV1Api.class);
-        this.eventRecorder = Mockito.mock(EventRecorder.class);
     }
 
     @Test
