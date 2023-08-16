@@ -26,6 +26,7 @@ class GroupResolverTest {
 
     @Test
     void should_return_group_containing_namespace_of_pod() {
+        Assertions.fail();
         V1ResourceGroup group1 = new V1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
