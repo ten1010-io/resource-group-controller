@@ -20,7 +20,6 @@ import io.ten1010.coaster.groupcontroller.controller.clusterrolebinding.ClusterR
 import io.ten1010.coaster.groupcontroller.controller.daemonset.DaemonSetControllerFactory;
 import io.ten1010.coaster.groupcontroller.controller.node.NodeControllerFactory;
 import io.ten1010.coaster.groupcontroller.controller.pod.PodControllerFactory;
-import io.ten1010.coaster.groupcontroller.controller.role.ResourceGroupRoleName;
 import io.ten1010.coaster.groupcontroller.controller.role.RoleControllerFactory;
 import io.ten1010.coaster.groupcontroller.controller.rolebinding.RoleBindingControllerFactory;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
@@ -148,7 +147,6 @@ public class ControllerConfiguration {
     @Bean
     public Controller roleBindingController(
             SharedInformerFactory sharedInformerFactory,
-            ResourceGroupRoleName resourceGroupRoleName,
             RbacAuthorizationV1Api rbacAuthorizationV1Api,
             EventRecorder eventRecorder) {
         Indexer<V1RoleBinding> roleBindingIndexer = sharedInformerFactory
