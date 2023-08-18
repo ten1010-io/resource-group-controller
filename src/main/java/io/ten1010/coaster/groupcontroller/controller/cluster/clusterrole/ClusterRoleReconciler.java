@@ -87,6 +87,12 @@ public class ClusterRoleReconciler implements Reconciler {
         this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
     }
 
+    /**
+     * Reconcile given cluster role from {@link V1ResourceGroup} of request to ensure its policy rules.
+     *
+     * @param request the reconcile request, triggered by watch events
+     * @return the result
+     */
     @Override
     public Result reconcile(Request request) {
         return this.template.execute(
