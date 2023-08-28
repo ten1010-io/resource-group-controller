@@ -32,8 +32,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: resource-group-controller-envs
-            - secretRef:
-                name: resource-group-controller-envs
           volumeMounts:
             - name: tls
               readOnly: true
@@ -45,6 +43,10 @@ spec:
               - secret:
                   name: resource-group-controller-tls
                   items:
-                    - key: tls.p12
-                      path: "tls.p12"
+                    - key: tls.crt
+                      path: "tls.crt"
+                    - key: tls.key
+                      path: "tls.key"
+                    - key: ca.crt
+                      path: "ca.crt"
 ---
