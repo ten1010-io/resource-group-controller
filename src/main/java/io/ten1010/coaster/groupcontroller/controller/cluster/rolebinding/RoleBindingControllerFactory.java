@@ -4,10 +4,10 @@ import io.kubernetes.client.extended.controller.Controller;
 import io.kubernetes.client.extended.controller.builder.ControllerBuilder;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.informer.cache.Indexer;
-import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.V1Namespace;
 import io.kubernetes.client.openapi.models.V1Role;
 import io.kubernetes.client.openapi.models.V1RoleBinding;
+import io.ten1010.coaster.groupcontroller.core.K8sApis;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 
 public class RoleBindingControllerFactory {
@@ -17,7 +17,7 @@ public class RoleBindingControllerFactory {
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1RoleBinding> roleBindingIndexer;
     private Indexer<V1Role> roleIndexer;
-    private RbacAuthorizationV1Api rbacAuthorizationV1Api;
+    private K8sApis k8sApis;
 
     public RoleBindingControllerFactory(
             SharedInformerFactory informerFactory,
@@ -25,13 +25,13 @@ public class RoleBindingControllerFactory {
             Indexer<V1ResourceGroup> groupIndexer,
             Indexer<V1RoleBinding> roleBindingIndexer,
             Indexer<V1Role> roleIndexer,
-            RbacAuthorizationV1Api rbacAuthorizationV1Api) {
+            K8sApis k8sApis) {
         this.informerFactory = informerFactory;
         this.namespaceIndexer = namespaceIndexer;
         this.groupIndexer = groupIndexer;
         this.roleBindingIndexer = roleBindingIndexer;
         this.roleIndexer = roleIndexer;
-        this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
+        this.k8sApis = k8sApis;
     }
 
     public Controller create() {
@@ -46,7 +46,7 @@ public class RoleBindingControllerFactory {
                         this.groupIndexer,
                         this.roleBindingIndexer,
                         this.roleIndexer,
-                        this.rbacAuthorizationV1Api))
+                        this.k8sApis.getRbacAuthorizationV1Api()))
                 .build();
     }
 

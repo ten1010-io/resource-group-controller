@@ -4,9 +4,9 @@ import io.kubernetes.client.extended.controller.Controller;
 import io.kubernetes.client.extended.controller.builder.ControllerBuilder;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.informer.cache.Indexer;
-import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.V1ClusterRole;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBinding;
+import io.ten1010.coaster.groupcontroller.core.K8sApis;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 
 public class ClusterRoleBindingControllerFactory {
@@ -15,19 +15,19 @@ public class ClusterRoleBindingControllerFactory {
     private Indexer<V1ResourceGroup> groupIndexer;
     private Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer;
     private Indexer<V1ClusterRole> clusterRoleIndexer;
-    private RbacAuthorizationV1Api rbacAuthorizationV1Api;
+    private K8sApis k8sApis;
 
     public ClusterRoleBindingControllerFactory(
             SharedInformerFactory informerFactory,
             Indexer<V1ResourceGroup> groupIndexer,
             Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer,
             Indexer<V1ClusterRole> clusterRoleIndexer,
-            RbacAuthorizationV1Api rbacAuthorizationV1Api) {
+            K8sApis k8sApis) {
         this.informerFactory = informerFactory;
         this.groupIndexer = groupIndexer;
         this.clusterRoleBindingIndexer = clusterRoleBindingIndexer;
         this.clusterRoleIndexer = clusterRoleIndexer;
-        this.rbacAuthorizationV1Api = rbacAuthorizationV1Api;
+        this.k8sApis = k8sApis;
     }
 
     public Controller create() {
@@ -40,7 +40,7 @@ public class ClusterRoleBindingControllerFactory {
                         this.groupIndexer,
                         this.clusterRoleBindingIndexer,
                         this.clusterRoleIndexer,
-                        this.rbacAuthorizationV1Api))
+                        this.k8sApis.getRbacAuthorizationV1Api()))
                 .build();
     }
 

@@ -13,7 +13,6 @@ Resource Group Controller는 다음과 같은 기능을 제공하는 쿠버네�
 * Prerequisites
 ** kubectl 사용 가능 상태
 ** ClusterRole(cluster-admin) 권한
-** 자바11 (소스를 직접 빌드할시)
 ** 직접 소스를 빌드하지 않고 Docker Hub에 배포된 이미지를 사용하려면 반드시 릴리즈 태그로 체크아웃 하세요
 *** 예: git checkout tags/v1.0.0
 
@@ -122,6 +121,7 @@ ResourceGroup을 생성하면 그룹내 네임스페이의 관리자 역할(Role
     6. ServiceAccount
     7. LimitRange
     8. Event
+    9. ReplicationController
 2. events.k8s.io api
     1. Event
 3. batch api
@@ -130,10 +130,24 @@ ResourceGroup을 생성하면 그룹내 네임스페이의 관리자 역할(Role
 4. apps api
     1. Deployment
     2. StatefulSet
+    3. Daemonset
+    4. ReplicaSet
 5. autoscaling api
     1. HorizontalPodAutoscaler
 6. policy api
     1. PodDisruptionBudget
+----
+
+== 지원하는 workload controller
+
+----
+1. batch/CronJob
+2. apps/Daemonset
+3. apps/Deployment
+4. batch/Job
+5. apps/ReplicaSet
+6. core/ReplicationController
+7. apps/StatefulSet
 ----
 
 == 보안 취약점 리포팅

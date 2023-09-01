@@ -5,10 +5,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
-import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
+import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
+import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
@@ -23,15 +25,17 @@ import java.util.List;
 
 class AdmissionReviewServiceTest {
 
-    GroupResolver groupResolver;
+    Indexer<V1ResourceGroup> groupIndexer;
+    Reconciliation reconciliation;
 
     @BeforeEach
     void setUp() {
-        this.groupResolver = Mockito.mock(GroupResolver.class);
+        this.groupIndexer = Mockito.mock(Indexer.class);
+        this.reconciliation = new Reconciliation(this.groupIndexer);
     }
 
     @Test
-    void should_patch_nodeAffinities_and_tolerations() {
+    void should_patch_affinity_and_tolerations() {
         V1ResourceGroup group1 = new V1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
@@ -49,9 +53,12 @@ class AdmissionReviewServiceTest {
         podSpec1.setTolerations(new ArrayList<>());
         pod1.setSpec(podSpec1);
 
-        Mockito.doReturn(List.of(group1)).when(this.groupResolver).resolve(pod1);
-        AdmissionReviewService admissionReviewService = new AdmissionReviewService(this.groupResolver);
+        Mockito.doReturn(List.of(group1))
+                .when(this.groupIndexer)
+                .byIndex(IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, "ns1");
+        AdmissionReviewService admissionReviewService = new AdmissionReviewService(this.reconciliation);
         V1AdmissionReviewRequest request = new V1AdmissionReviewRequest();
+        request.setUid("dummy-uid");
         V1AdmissionReviewRequest.Kind kind = new V1AdmissionReviewRequest.Kind();
         kind.setGroup("");
         kind.setVersion("v1");

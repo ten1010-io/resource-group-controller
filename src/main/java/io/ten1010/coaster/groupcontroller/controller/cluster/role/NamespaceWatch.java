@@ -6,7 +6,7 @@ import io.kubernetes.client.extended.workqueue.WorkQueue;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1Namespace;
-import io.ten1010.coaster.groupcontroller.core.IndexNameConstants;
+import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 
@@ -31,7 +31,7 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
 
         @Override
         public void onAdd(V1Namespace obj) {
-            List<V1ResourceGroup> groups = this.groupIndexer.byIndex(IndexNameConstants.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(obj));
+            List<V1ResourceGroup> groups = this.groupIndexer.byIndex(IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(obj));
             groups.stream()
                     .map(group -> {
                         String roleName = new ResourceGroupRoleName(K8sObjectUtil.getName(group)).getName();

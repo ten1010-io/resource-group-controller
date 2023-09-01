@@ -14,7 +14,7 @@ import java.util.List;
 @ToString
 public class Exceptions {
 
-    private List<DaemonSetReference> daemonSets;
+    private List<K8sObjectReference> daemonSets;
 
     public Exceptions() {
         this.daemonSets = new ArrayList<>();

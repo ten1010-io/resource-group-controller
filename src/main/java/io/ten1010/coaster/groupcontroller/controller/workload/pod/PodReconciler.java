@@ -9,13 +9,13 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
-import io.ten1010.coaster.groupcontroller.controller.GroupResolver;
+import io.ten1010.coaster.groupcontroller.controller.ControllerSupport;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
 import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
+import io.ten1010.coaster.groupcontroller.core.ApiResourceKind;
 import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.core.PodUtil;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -31,13 +31,13 @@ public class PodReconciler implements Reconciler {
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
     private Indexer<V1Pod> podIndexer;
-    private GroupResolver groupResolver;
+    private Reconciliation reconciliation;
     private CoreV1Api coreV1Api;
 
-    public PodReconciler(Indexer<V1Pod> podIndexer, GroupResolver groupResolver, CoreV1Api coreV1Api) {
+    public PodReconciler(Indexer<V1Pod> podIndexer, Reconciliation reconciliation, CoreV1Api coreV1Api) {
         this.template = new KubernetesApiReconcileExceptionHandlingTemplate(API_CONFLICT_REQUEUE_DURATION, API_FAIL_REQUEUE_DURATION);
         this.podIndexer = podIndexer;
-        this.groupResolver = groupResolver;
+        this.reconciliation = reconciliation;
         this.coreV1Api = coreV1Api;
     }
 
@@ -58,27 +58,29 @@ public class PodReconciler implements Reconciler {
             }
             log.debug("Pod [{}] founded while reconciling\n{}", podKey, pod);
 
-            List<V1ResourceGroup> groups = this.groupResolver.resolve(pod);
-            log.debug("GroupResolver resolve Pod [{}] to [{}]", podKey, groups);
-            List<V1Toleration> reconciledTolerations = Reconciliation.reconcileTolerations(pod, groups);
-            log.debug("Tolerations [{}] of pod [{}] reconciled to Tolerations [{}]", PodUtil.getTolerations(pod), podKey, reconciledTolerations);
-            if (!new HashSet<>(PodUtil.getTolerations(pod)).equals(new HashSet<>(reconciledTolerations))) {
-                deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
-                log.debug("Pod [{}] deleted while reconciling because of tolerations", podKey);
+            if (!K8sObjectUtil.isControlled(pod)) {
+                Optional<V1Affinity> reconciledAffinity = this.reconciliation.reconcileUncontrolledPodAffinity(pod);
+                log.debug("Affinity [{}] of pod [{}] reconciled to Affinity [{}]", PodUtil.getAffinity(pod), podKey, reconciledAffinity.orElse(null));
+                if (!PodUtil.getAffinity(pod).equals(reconciledAffinity)) {
+                    deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
+                    log.debug("Pod [{}] deleted while reconciling because of affinity", podKey);
+                    return new Result(false);
+                }
+                List<V1Toleration> reconciledTolerations = this.reconciliation.reconcileUncontrolledPodTolerations(pod);
+                log.debug("Tolerations [{}] of pod [{}] reconciled to Tolerations [{}]", PodUtil.getTolerations(pod), podKey, reconciledTolerations);
+                if (!new HashSet<>(PodUtil.getTolerations(pod)).equals(new HashSet<>(reconciledTolerations))) {
+                    deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
+                    log.debug("Pod [{}] deleted while reconciling because of tolerations", podKey);
+                    return new Result(false);
+                }
                 return new Result(false);
             }
-            Optional<V1Affinity> reconciledAffinity = Reconciliation.reconcileAffinity(pod, groups);
-            log.debug("Affinity [{}] of pod [{}] reconciled to Affinity [{}]", PodUtil.getAffinity(pod), podKey, reconciledAffinity);
-            if (reconciledAffinity.isEmpty() && PodUtil.getAffinity(pod).isPresent()) {
-                deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
-                log.debug("Pod [{}] deleted while reconciling because of affinity", podKey);
+            ApiResourceKind controllerKind = K8sObjectUtil.getApiResourceKind(K8sObjectUtil.getControllerReference(pod));
+            if (ControllerSupport.isSupportedControllerOfPod(controllerKind)) {
                 return new Result(false);
             }
-            if (reconciledAffinity.isPresent() && !reconciledAffinity.get().equals(PodUtil.getAffinity(pod).orElse(null))) {
-                deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
-                log.debug("Pod [{}] deleted while reconciling because of affinity", podKey);
-                return new Result(false);
-            }
+            deletePod(K8sObjectUtil.getNamespace(pod), K8sObjectUtil.getName(pod));
+            log.debug("Pod [{}] deleted while reconciling because its controller [{}] is unsupported", controllerKind, podKey);
             return new Result(false);
         }, request);
     }

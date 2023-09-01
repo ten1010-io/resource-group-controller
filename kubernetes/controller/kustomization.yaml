@@ -18,7 +18,7 @@ generatorOptions:
 resources:
   - templates/namespace.yaml
   - templates/service-account.yaml
-  - templates/role.yaml
+  - templates/cluster-role.yaml
   - templates/crd.yaml
   - templates/deployment.yaml
   - templates/service.yaml

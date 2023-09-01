@@ -47,7 +47,7 @@ public class NodeReconciler implements Reconciler {
     /**
      * Check whether given taint has ResourceGroup{@link V1ResourceGroup} exclusive key.
      * <p>
-     * See constant string in TaintConstants{@link TaintConstants}.
+     * See constant string in TaintConstants{@link Taints}.
      * </p>
      *
      * @param taint
@@ -58,7 +58,7 @@ public class NodeReconciler implements Reconciler {
             return false;
         }
 
-        return taint.getKey().equals(TaintConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
+        return taint.getKey().equals(Taints.KEY_RESOURCE_GROUP_EXCLUSIVE);
     }
 
     /**
@@ -69,16 +69,13 @@ public class NodeReconciler implements Reconciler {
      */
     private static List<V1Taint> buildResourceGroupExclusiveTaints(V1ResourceGroup group) {
         V1TaintBuilder baseBuilder = new V1TaintBuilder()
-                .withKey(TaintConstants.KEY_RESOURCE_GROUP_EXCLUSIVE)
+                .withKey(Taints.KEY_RESOURCE_GROUP_EXCLUSIVE)
                 .withValue(K8sObjectUtil.getName(group));
         V1Taint noSchedule = baseBuilder
-                .withEffect(TaintConstants.EFFECT_NO_SCHEDULE)
-                .build();
-        V1Taint noExecute = baseBuilder
-                .withEffect(TaintConstants.EFFECT_NO_EXECUTE)
+                .withEffect(Taints.EFFECT_NO_SCHEDULE)
                 .build();
 
-        return List.of(noSchedule, noExecute);
+        return List.of(noSchedule);
     }
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
@@ -113,13 +110,13 @@ public class NodeReconciler implements Reconciler {
             }
             log.debug("Node [{}] founded while reconciling\n{}", nodeKey, node.toString());
 
-            List<V1ResourceGroup> groups = this.groupIndexer.byIndex(IndexNameConstants.BY_NODE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(node));
+            List<V1ResourceGroup> groups = this.groupIndexer.byIndex(IndexNames.BY_NODE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(node));
             if (groups.size() > 1) {
                 for (V1ResourceGroup g : groups) {
                     this.eventRecorder.event(
                             g,
                             EventType.Warning,
-                            EventConstants.REASON_NODE_CONFLICT, MSG_NODE_BELONGS_TO_MULTIPLE_GROUPS,
+                            Events.REASON_NODE_CONFLICT, MSG_NODE_BELONGS_TO_MULTIPLE_GROUPS,
                             K8sObjectUtil.getName(node));
                 }
                 return new Result(true, INVALID_STATE_REQUEUE_DURATION);
@@ -144,11 +141,11 @@ public class NodeReconciler implements Reconciler {
      */
     private Map<String, String> reconcileLabels(V1Node node, @Nullable V1ResourceGroup group) {
         Map<String, String> labels = getLabels(node);
-        labels.remove(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE);
+        labels.remove(Labels.KEY_RESOURCE_GROUP_EXCLUSIVE);
         if (group == null) {
             return labels;
         }
-        labels.put(LabelConstants.KEY_RESOURCE_GROUP_EXCLUSIVE, K8sObjectUtil.getName(group));
+        labels.put(Labels.KEY_RESOURCE_GROUP_EXCLUSIVE, K8sObjectUtil.getName(group));
         return labels;
     }
 

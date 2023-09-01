@@ -29,32 +29,18 @@ public class RoleReconciler implements Reconciler {
         RULES = buildRules();
     }
 
-    /* grant all verbs permission for following resources
-        1. core
-	        1. Pod
-	        2. Service
-	        3. ConfigMap
-	        4. Secret
-	        5. PersistentVolumeClaim
-	        6. ServiceAccount
-	        7. LimitRange
-	        8. Event
-        2. events.k8s.io
-	        1. Event
-        3. batch
-	        1. Job
-	        2. CronJob
-        4. apps
-	        1. Deployment
-	        2. StatefulSet
-        5. autoscaling
-	        1. HorizontalPodAutoscaler
-        6. policy
-	        1. PodDisruptionBudget
-     */
     private static List<V1PolicyRule> buildRules() {
         V1PolicyRule coreApiRule = new V1PolicyRuleBuilder().withApiGroups("")
-                .withResources("pods", "services", "configmaps", "secrets", "persistentvolumeclaims", "serviceaccounts", "limitranges", "events")
+                .withResources(
+                        "pods",
+                        "services",
+                        "configmaps",
+                        "secrets",
+                        "persistentvolumeclaims",
+                        "serviceaccounts",
+                        "limitranges",
+                        "events",
+                        "replicationcontrollers")
                 .withVerbs("*")
                 .build();
         V1PolicyRule eventApiRule = new V1PolicyRuleBuilder().withApiGroups("events.k8s.io")
@@ -66,7 +52,7 @@ public class RoleReconciler implements Reconciler {
                 .withVerbs("*")
                 .build();
         V1PolicyRule appsApiRule = new V1PolicyRuleBuilder().withApiGroups("apps")
-                .withResources("deployments", "statefulsets")
+                .withResources("deployments", "statefulsets", "daemonsets", "replicasets")
                 .withVerbs("*")
                 .build();
         V1PolicyRule autoscalingApiRule = new V1PolicyRuleBuilder().withApiGroups("autoscaling")
