@@ -28,6 +28,8 @@ public class PodControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
+                .withName("pod-controller")
+                .withWorkerCount(1)
                 .watch(workQueue -> new ResourceGroupWatch(workQueue, this.podIndexer))
                 .watch(PodWatch::new)
                 .withReconciler(new PodReconciler(this.podIndexer, this.groupResolver, this.coreV1Api))

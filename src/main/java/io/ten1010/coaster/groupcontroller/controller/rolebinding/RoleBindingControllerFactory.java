@@ -36,6 +36,8 @@ public class RoleBindingControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
+                .withName("role-binding-controller")
+                .withWorkerCount(1)
                 .watch(workQueue -> new ResourceGroupWatch(workQueue))
                 .watch(workQueue -> new RoleBindingWatch(workQueue))
                 .watch(workQueue -> new NamespaceWatch(workQueue, this.groupIndexer))

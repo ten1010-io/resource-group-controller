@@ -28,6 +28,8 @@ public class DaemonSetControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
+                .withName("daemon-set-controller")
+                .withWorkerCount(1)
                 .watch(ResourceGroupWatch::new)
                 .watch(DaemonSetWatch::new)
                 .withReconciler(new DaemonSetReconciler(this.daemonSetIndexer, this.groupResolver, this.appsV1Api))

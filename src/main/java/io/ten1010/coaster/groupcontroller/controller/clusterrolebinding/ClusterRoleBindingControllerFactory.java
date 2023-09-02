@@ -32,6 +32,8 @@ public class ClusterRoleBindingControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
+                .withName("cluster-role-binding-controller")
+                .withWorkerCount(1)
                 .watch(ResourceGroupWatch::new)
                 .watch(ClusterRoleBindingWatch::new)
                 .withReconciler(new ClusterRoleBindingReconciler(

@@ -28,6 +28,8 @@ public class ClusterRoleControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
+                .withName("cluster-role-controller")
+                .withWorkerCount(1)
                 .watch(workQueue -> new ResourceGroupWatch(workQueue))
                 .watch(workQueue -> new ClusterRoleWatch(workQueue))
                 .withReconciler(new ClusterRoleReconciler(this.groupIndexer, this.clusterRoleIndexer, this.rbacAuthorizationV1Api))

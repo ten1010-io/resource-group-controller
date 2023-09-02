@@ -32,6 +32,8 @@ public class RoleControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
+                .withName("role-controller")
+                .withWorkerCount(1)
                 .watch(ResourceGroupWatch::new)
                 .watch(RoleWatch::new)
                 .watch(workQueue -> new NamespaceWatch(workQueue, this.groupIndexer))

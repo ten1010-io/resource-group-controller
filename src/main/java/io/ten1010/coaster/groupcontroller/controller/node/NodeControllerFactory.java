@@ -32,6 +32,8 @@ public class NodeControllerFactory {
 
     public Controller create() {
         return ControllerBuilder.defaultBuilder(this.informerFactory)
+                .withName("node-controller")
+                .withWorkerCount(1)
                 .watch(ResourceGroupWatch::new)
                 .watch(NodeWatch::new)
                 .withReconciler(new NodeReconciler(this.nodeIndexer, this.groupIndexer, this.coreV1Api, this.eventRecorder))
