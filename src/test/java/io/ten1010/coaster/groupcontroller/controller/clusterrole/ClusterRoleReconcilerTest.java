@@ -7,6 +7,7 @@ import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.V1ClusterRole;
 import io.kubernetes.client.openapi.models.V1Namespace;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.ten1010.coaster.groupcontroller.controller.cluster.clusterrole.ClusterRoleReconciler;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
 import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
