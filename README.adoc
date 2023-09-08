@@ -52,33 +52,33 @@ kubectl apply -k .
 아래 예제는 ns1 네임스페이스에 node1 노드를 전용 할당합니다.
 +
 ----
-apiVersion: ten1010.io/v1
+apiVersion: resource-group.ten1010.io/v1beta1
 kind: ResourceGroup
 metadata:
   name: group1
 spec:
   nodes: ["node1"]
   namespaces: ["ns1"]
-  exceptions:
+  daemonSet:
     daemonSets: []
   subjects: []
 ----
 
-* case 2 : 예외 등록하기
+* case 2 : 데몬셋 등록하기
 +
-예외는 DaemonSet만 설정 가능합니다.
+특정 데몬셋의 팟이 그룹의 노드에 스케쥴링 되는 것을 허용합니다.
 +
-아래 예제는 ns1 네임스페이스에 node1 노드를 전용 할당하였지만 예외로 ds1 네임스페이스의 ds1 DaemonSet을 허용합니다
+네임스페이스와는 다르게 daemonSet 필드로 등록한 데몬셋에 대한 권한은 그룹의 subject에 할당되지 않습니다.
 +
 ----
-apiVersion: ten1010.io/v1
+apiVersion: resource-group.ten1010.io/v1beta1
 kind: ResourceGroup
 metadata:
   name: group1
 spec:
   nodes: ["node1"]
   namespaces: ["ns1"]
-  exceptions:
+  daemonSet:
     daemonSets:
       - namespace: ds1
         name: ds1
@@ -90,14 +90,14 @@ spec:
 아래 예제는 user1 유저에게 ns1 네임스페이스의 관리자 권한을 할당합니다.
 +
 ----
-apiVersion: ten1010.io/v1
+apiVersion: resource-group.ten1010.io/v1beta1
 kind: ResourceGroup
 metadata:
   name: group1
 spec:
   nodes: ["node1"]
   namespaces: ["ns1"]
-  exceptions:
+  daemonSet:
     daemonSets: []
   subjects:
     - apiGroup: "rbac.authorization.k8s.io"
