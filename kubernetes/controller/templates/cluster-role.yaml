@@ -1,9 +1,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: resource-group-controller.ten1010.io
+  name: resource-group-controller.resource-group.ten1010.io
 rules:
-  - apiGroups: [ "ten1010.io" ]
+  - apiGroups: [ "resource-group.ten1010.io" ]
     resources: [ "resourcegroups" ]
     verbs: [ "get", "watch", "list" ]
   - apiGroups: [ "" ]
@@ -66,13 +66,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: resource-group-controller.ten1010.io
+  name: resource-group-controller.resource-group.ten1010.io
 subjects:
   - kind: ServiceAccount
     namespace: resource-group-controller
     name: resource-group-controller
 roleRef:
   kind: ClusterRole
-  name: resource-group-controller.ten1010.io
+  name: resource-group-controller.resource-group.ten1010.io
   apiGroup: rbac.authorization.k8s.io
 ---

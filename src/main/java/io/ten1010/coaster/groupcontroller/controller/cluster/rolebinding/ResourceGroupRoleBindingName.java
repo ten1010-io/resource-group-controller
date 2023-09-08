@@ -17,7 +17,7 @@ public class ResourceGroupRoleBindingName {
         return new ResourceGroupRoleBindingName(matcher.group(1));
     }
 
-    private static final String ROLE_BINDING_NAME_PREFIX = "resource-group-controller.ten1010.io:";
+    private static final String ROLE_BINDING_NAME_PREFIX = "resource-group-controller.resource-group.ten1010.io:";
     private static final Pattern RESOURCE_GROUP_ROLE_BINDING_NAME_PATTERN = Pattern.compile(ROLE_BINDING_NAME_PREFIX + "(.*)");
 
     @Getter

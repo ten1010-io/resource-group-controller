@@ -10,7 +10,7 @@ import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
 import io.ten1010.coaster.groupcontroller.controller.cluster.clusterrole.ResourceGroupClusterRoleName;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -43,16 +43,16 @@ public class ClusterRoleBindingReconciler implements Reconciler {
 
     private static V1OwnerReference buildOwnerReference(String groupName, String groupUid) {
         V1OwnerReferenceBuilder builder = new V1OwnerReferenceBuilder();
-        return builder.withApiVersion(V1ResourceGroup.API_VERSION)
+        return builder.withApiVersion(V1Beta1ResourceGroup.API_VERSION)
                 .withBlockOwnerDeletion(true)
                 .withController(true)
-                .withKind(V1ResourceGroup.KIND)
+                .withKind(V1Beta1ResourceGroup.KIND)
                 .withName(groupName)
                 .withUid(groupUid)
                 .build();
     }
 
-    private static V1OwnerReference buildOwnerReference(V1ResourceGroup group) {
+    private static V1OwnerReference buildOwnerReference(V1Beta1ResourceGroup group) {
         Objects.requireNonNull(group.getMetadata());
         Objects.requireNonNull(group.getMetadata().getName());
         Objects.requireNonNull(group.getMetadata().getUid());
@@ -60,13 +60,13 @@ public class ClusterRoleBindingReconciler implements Reconciler {
     }
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
-    private Indexer<V1ResourceGroup> groupIndexer;
+    private Indexer<V1Beta1ResourceGroup> groupIndexer;
     private Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer;
     private Indexer<V1ClusterRole> clusterRoleIndexer;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
     public ClusterRoleBindingReconciler(
-            Indexer<V1ResourceGroup> groupIndexer,
+            Indexer<V1Beta1ResourceGroup> groupIndexer,
             Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer,
             Indexer<V1ClusterRole> clusterRoleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
@@ -85,7 +85,7 @@ public class ClusterRoleBindingReconciler implements Reconciler {
                         return new Result(false);
                     }
                     String groupName = ResourceGroupClusterRoleBindingName.fromClusterRoleBindingName(request.getName()).getResourceGroupName();
-                    V1ResourceGroup group = this.groupIndexer.getByKey(groupName);
+                    V1Beta1ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteClusterRoleBindingIfExist(request.getName());
                         return new Result(false);

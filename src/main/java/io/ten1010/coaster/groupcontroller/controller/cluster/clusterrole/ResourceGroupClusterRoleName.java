@@ -17,7 +17,7 @@ public class ResourceGroupClusterRoleName {
         return new ResourceGroupClusterRoleName(matcher.group(1));
     }
 
-    private static final String CLUSTER_ROLE_NAME_PREFIX = "resource-group-controller.ten1010.io:";
+    private static final String CLUSTER_ROLE_NAME_PREFIX = "resource-group-controller.resource-group.ten1010.io:";
     private static final Pattern RESOURCE_GROUP_CLUSTER_ROLE_NAME_PATTERN = Pattern.compile(CLUSTER_ROLE_NAME_PREFIX + "(.*)");
 
     @Getter

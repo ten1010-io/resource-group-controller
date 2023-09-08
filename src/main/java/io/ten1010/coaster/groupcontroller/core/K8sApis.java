@@ -7,8 +7,8 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.generic.GenericKubernetesApi;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupList;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupList;
 import lombok.Getter;
 
 @Getter
@@ -20,7 +20,7 @@ public class K8sApis {
     private BatchV1Api batchV1Api;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
-    private GenericKubernetesApi<V1ResourceGroup, V1ResourceGroupList> resourceGroupApi;
+    private GenericKubernetesApi<V1Beta1ResourceGroup, V1Beta1ResourceGroupList> resourceGroupApi;
 
     private GenericKubernetesApi<V1CronJob, V1CronJobList> cronJobApi;
     private GenericKubernetesApi<V1DaemonSet, V1DaemonSetList> daemonSetApi;
@@ -45,10 +45,10 @@ public class K8sApis {
         this.batchV1Api = new BatchV1Api(apiClient);
         this.rbacAuthorizationV1Api = new RbacAuthorizationV1Api(apiClient);
         this.resourceGroupApi = new GenericKubernetesApi<>(
-                V1ResourceGroup.class,
-                V1ResourceGroupList.class,
-                "ten1010.io",
-                "v1",
+                V1Beta1ResourceGroup.class,
+                V1Beta1ResourceGroupList.class,
+                "resource-group.ten1010.io",
+                "v1beta1",
                 "resourcegroups",
                 apiClient);
         this.cronJobApi = new GenericKubernetesApi<>(

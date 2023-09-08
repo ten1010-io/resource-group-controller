@@ -10,13 +10,13 @@ import org.springframework.lang.Nullable;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class V1ResourceGroup implements KubernetesObject {
+public class V1Beta1ResourceGroup implements KubernetesObject {
 
-    public static final String API_VERSION = "ten1010.io/v1";
+    public static final String API_VERSION = "resource-group.ten1010.io/v1beta1";
     public static final String KIND = "ResourceGroup";
 
-    public static V1ResourceGroup withDefaultApiVersionAndKind() {
-        V1ResourceGroup obj = new V1ResourceGroup();
+    public static V1Beta1ResourceGroup withDefaultApiVersionAndKind() {
+        V1Beta1ResourceGroup obj = new V1Beta1ResourceGroup();
         obj.setApiVersion(API_VERSION);
         obj.setKind(KIND);
         return obj;
@@ -29,8 +29,8 @@ public class V1ResourceGroup implements KubernetesObject {
     @Nullable
     private V1ObjectMeta metadata;
     @Nullable
-    private V1ResourceGroupSpec spec;
+    private V1Beta1ResourceGroupSpec spec;
     @Nullable
-    private V1ResourceGroupStatus status;
+    private V1Beta1ResourceGroupStatus status;
 
 }

@@ -9,10 +9,10 @@ import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
 import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.core.Taints;
-import io.ten1010.coaster.groupcontroller.model.K8sObjectReference;
-import io.ten1010.coaster.groupcontroller.model.Exceptions;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1K8sObjectReference;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1DaemonSet;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 class DaemonSetReconcilerTest {
 
-    Indexer<V1ResourceGroup> groupIndexer;
+    Indexer<V1Beta1ResourceGroup> groupIndexer;
     Reconciliation reconciliation;
     Indexer<V1DaemonSet> daemonSetIndexer;
     AppsV1Api appsV1Api;
@@ -41,31 +41,31 @@ class DaemonSetReconcilerTest {
 
     @Test
     void should_patch_tolerations_of_the_daemon_set() {
-        V1ResourceGroup group1 = new V1ResourceGroup();
+        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
-        V1ResourceGroupSpec spec1 = new V1ResourceGroupSpec();
+        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
         group1.setSpec(spec1);
-        K8sObjectReference dsRef1 = new K8sObjectReference();
+        V1Beta1K8sObjectReference dsRef1 = new V1Beta1K8sObjectReference();
         dsRef1.setNamespace("ns1");
         dsRef1.setName("ds1");
-        Exceptions exceptions1 = new Exceptions();
-        exceptions1.setDaemonSets(List.of(dsRef1));
-        spec1.setExceptions(exceptions1);
+        V1Beta1DaemonSet daemonSet1 = new V1Beta1DaemonSet();
+        daemonSet1.setDaemonSets(List.of(dsRef1));
+        spec1.setDaemonSet(daemonSet1);
 
-        V1ResourceGroup group2 = new V1ResourceGroup();
+        V1Beta1ResourceGroup group2 = new V1Beta1ResourceGroup();
         V1ObjectMeta meta2 = new V1ObjectMeta();
         meta2.setName("group2");
         group2.setMetadata(meta2);
-        V1ResourceGroupSpec spec2 = new V1ResourceGroupSpec();
+        V1Beta1ResourceGroupSpec spec2 = new V1Beta1ResourceGroupSpec();
         group2.setSpec(spec2);
-        K8sObjectReference dsRef2 = new K8sObjectReference();
+        V1Beta1K8sObjectReference dsRef2 = new V1Beta1K8sObjectReference();
         dsRef2.setNamespace("ns1");
         dsRef2.setName("ds1");
-        Exceptions exceptions2 = new Exceptions();
-        exceptions2.setDaemonSets(List.of(dsRef2));
-        spec2.setExceptions(exceptions2);
+        V1Beta1DaemonSet daemonSet2 = new V1Beta1DaemonSet();
+        daemonSet2.setDaemonSets(List.of(dsRef2));
+        spec2.setDaemonSet(daemonSet2);
 
         V1DaemonSet ds1 = new V1DaemonSet();
         V1ObjectMeta dsMeta1 = new V1ObjectMeta();

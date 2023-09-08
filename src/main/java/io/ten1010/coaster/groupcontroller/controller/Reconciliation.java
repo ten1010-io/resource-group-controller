@@ -3,7 +3,7 @@ package io.ten1010.coaster.groupcontroller.controller;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.core.*;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
 import org.springframework.lang.Nullable;
 
 import java.util.ArrayList;
@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 
 public class Reconciliation {
 
-    private static Optional<V1Affinity> reconcileAffinity(@Nullable V1Affinity existingAffinity, List<V1ResourceGroup> groups) {
+    private static Optional<V1Affinity> reconcileAffinity(@Nullable V1Affinity existingAffinity, List<V1Beta1ResourceGroup> groups) {
         List<V1NodeSelectorTerm> terms = new ArrayList<>();
         if (existingAffinity == null) {
             if (groups.isEmpty()) {
@@ -64,7 +64,7 @@ public class Reconciliation {
         return Optional.of(clone);
     }
 
-    private static List<V1Toleration> reconcileTolerations(List<V1Toleration> existingTolerations, List<V1ResourceGroup> groups) {
+    private static List<V1Toleration> reconcileTolerations(List<V1Toleration> existingTolerations, List<V1Beta1ResourceGroup> groups) {
         List<V1Toleration> tolerations = replaceAllKeyAllEffectTolerations(existingTolerations);
         tolerations = replaceAllKeyNoScheduleEffectTolerations(tolerations);
         tolerations = removeResourceGroupExclusiveTolerations(tolerations);
@@ -135,7 +135,7 @@ public class Reconciliation {
                 .collect(Collectors.toList());
     }
 
-    private static List<V1NodeSelectorTerm> buildResourceGroupExclusiveNodeSelectorTerms(List<V1ResourceGroup> groups) {
+    private static List<V1NodeSelectorTerm> buildResourceGroupExclusiveNodeSelectorTerms(List<V1Beta1ResourceGroup> groups) {
         V1NodeSelectorRequirement requirement = new V1NodeSelectorRequirementBuilder()
                 .withKey(Labels.KEY_RESOURCE_GROUP_EXCLUSIVE)
                 .withOperator("In")
@@ -163,13 +163,13 @@ public class Reconciliation {
                 .collect(Collectors.toList());
     }
 
-    private static List<V1Toleration> buildResourceGroupExclusiveTolerations(List<V1ResourceGroup> groups) {
+    private static List<V1Toleration> buildResourceGroupExclusiveTolerations(List<V1Beta1ResourceGroup> groups) {
         return groups.stream()
                 .flatMap(e -> buildResourceGroupExclusiveTolerations(e).stream())
                 .collect(Collectors.toList());
     }
 
-    private static List<V1Toleration> buildResourceGroupExclusiveTolerations(V1ResourceGroup group) {
+    private static List<V1Toleration> buildResourceGroupExclusiveTolerations(V1Beta1ResourceGroup group) {
         V1TolerationBuilder baseBuilder = new V1TolerationBuilder()
                 .withKey(Taints.KEY_RESOURCE_GROUP_EXCLUSIVE)
                 .withValue(K8sObjectUtil.getName(group))
@@ -188,9 +188,9 @@ public class Reconciliation {
         return toleration.getKey().equals(Taints.KEY_RESOURCE_GROUP_EXCLUSIVE);
     }
 
-    private Indexer<V1ResourceGroup> groupIndexer;
+    private Indexer<V1Beta1ResourceGroup> groupIndexer;
 
-    public Reconciliation(Indexer<V1ResourceGroup> groupIndexer) {
+    public Reconciliation(Indexer<V1Beta1ResourceGroup> groupIndexer) {
         this.groupIndexer = groupIndexer;
     }
 
@@ -198,7 +198,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(cronJob)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(cronJob));
 
         return reconcileAffinity(CronJobUtil.getAffinity(cronJob).orElse(null), groups);
@@ -215,7 +215,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(deployment)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(deployment));
 
         return reconcileAffinity(DeploymentUtil.getAffinity(deployment).orElse(null), groups);
@@ -225,7 +225,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(job)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(job));
 
         return reconcileAffinity(JobUtil.getAffinity(job).orElse(null), groups);
@@ -235,7 +235,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(pod)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(pod));
 
         return reconcileAffinity(PodUtil.getAffinity(pod).orElse(null), groups);
@@ -245,7 +245,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(replicaSet)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(replicaSet));
 
         return reconcileAffinity(ReplicaSetUtil.getAffinity(replicaSet).orElse(null), groups);
@@ -255,7 +255,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(replicationController)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(replicationController));
 
         return reconcileAffinity(ReplicationControllerUtil.getAffinity(replicationController).orElse(null), groups);
@@ -265,7 +265,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(statefulSet)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(statefulSet));
 
         return reconcileAffinity(StatefulSetUtil.getAffinity(statefulSet).orElse(null), groups);
@@ -275,7 +275,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(cronJob)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(cronJob));
 
         return reconcileTolerations(CronJobUtil.getTolerations(cronJob), groups);
@@ -285,12 +285,12 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(daemonSet)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groupsContainingNamespace = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groupsContainingNamespace = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(daemonSet));
-        List<V1ResourceGroup> groupsContainingDaemonSet = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groupsContainingDaemonSet = this.groupIndexer.byIndex(
                 IndexNames.BY_DAEMON_SET_KEY_TO_GROUP_OBJECT,
                 KeyUtil.buildKey(K8sObjectUtil.getNamespace(daemonSet), K8sObjectUtil.getName(daemonSet)));
-        List<V1ResourceGroup> groups = Stream.concat(groupsContainingNamespace.stream(), groupsContainingDaemonSet.stream())
+        List<V1Beta1ResourceGroup> groups = Stream.concat(groupsContainingNamespace.stream(), groupsContainingDaemonSet.stream())
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -301,7 +301,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(deployment)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(deployment));
 
         return reconcileTolerations(DeploymentUtil.getTolerations(deployment), groups);
@@ -311,7 +311,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(job)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(job));
 
         return reconcileTolerations(JobUtil.getTolerations(job), groups);
@@ -321,7 +321,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(pod)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(pod));
 
         return reconcileTolerations(PodUtil.getTolerations(pod), groups);
@@ -331,7 +331,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(replicaSet)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(replicaSet));
 
         return reconcileTolerations(ReplicaSetUtil.getTolerations(replicaSet), groups);
@@ -341,7 +341,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(replicationController)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(replicationController));
 
         return reconcileTolerations(ReplicationControllerUtil.getTolerations(replicationController), groups);
@@ -351,7 +351,7 @@ public class Reconciliation {
         if (K8sObjectUtil.isControlled(statefulSet)) {
             throw new IllegalArgumentException();
         }
-        List<V1ResourceGroup> groups = this.groupIndexer.byIndex(
+        List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(statefulSet));
 
         return reconcileTolerations(StatefulSetUtil.getTolerations(statefulSet), groups);

@@ -6,8 +6,8 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ import java.util.List;
 
 class ClusterRoleBindingReconcilerTest {
 
-    Indexer<V1ResourceGroup> groupIndexer;
+    Indexer<V1Beta1ResourceGroup> groupIndexer;
     Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer;
     Indexer<V1ClusterRole> clusterRoleIndexer;
     RbacAuthorizationV1Api rbacAuthorizationV1Api;
@@ -32,12 +32,12 @@ class ClusterRoleBindingReconcilerTest {
 
     @Test
     void should_create_the_cluster_role_binding() {
-        V1ResourceGroup group1 = new V1ResourceGroup();
+        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         meta1.setUid("group1-uid");
         group1.setMetadata(meta1);
-        V1ResourceGroupSpec spec1 = new V1ResourceGroupSpec();
+        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
         V1Subject subject = new V1Subject();
         subject.setApiGroup("rbac.authorization.k8s.io");
         subject.setKind("User");
@@ -46,24 +46,24 @@ class ClusterRoleBindingReconcilerTest {
         group1.setSpec(spec1);
 
         Mockito.doReturn(group1).when(this.groupIndexer).getByKey("group1");
-        Mockito.doReturn(null).when(this.clusterRoleBindingIndexer).getByKey(KeyUtil.buildKey("resource-group-controller.ten1010.io:group1"));
-        Mockito.doReturn(new V1ClusterRole()).when(this.clusterRoleIndexer).getByKey(KeyUtil.buildKey("resource-group-controller.ten1010.io:group1"));
+        Mockito.doReturn(null).when(this.clusterRoleBindingIndexer).getByKey(KeyUtil.buildKey("resource-group-controller.resource-group.ten1010.io:group1"));
+        Mockito.doReturn(new V1ClusterRole()).when(this.clusterRoleIndexer).getByKey(KeyUtil.buildKey("resource-group-controller.resource-group.ten1010.io:group1"));
         ClusterRoleBindingReconciler clusterRoleBindingReconciler = new ClusterRoleBindingReconciler(
                 this.groupIndexer,
                 this.clusterRoleBindingIndexer,
                 this.clusterRoleIndexer,
                 this.rbacAuthorizationV1Api);
-        clusterRoleBindingReconciler.reconcile(new Request("resource-group-controller.ten1010.io:group1"));
+        clusterRoleBindingReconciler.reconcile(new Request("resource-group-controller.resource-group.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).createClusterRoleBinding(
                     Mockito.argThat(clusterRoleBinding -> {
-                        if (!clusterRoleBinding.getMetadata().getName().equals("resource-group-controller.ten1010.io:group1")) {
+                        if (!clusterRoleBinding.getMetadata().getName().equals("resource-group-controller.resource-group.ten1010.io:group1")) {
                             return false;
                         }
                         V1RoleRef roleRef = new V1RoleRef();
                         roleRef.setApiGroup("rbac.authorization.k8s.io");
                         roleRef.setKind("ClusterRole");
-                        roleRef.setName("resource-group-controller.ten1010.io:group1");
+                        roleRef.setName("resource-group-controller.resource-group.ten1010.io:group1");
                         if (!clusterRoleBinding.getRoleRef().equals(roleRef)) {
                             return false;
                         }

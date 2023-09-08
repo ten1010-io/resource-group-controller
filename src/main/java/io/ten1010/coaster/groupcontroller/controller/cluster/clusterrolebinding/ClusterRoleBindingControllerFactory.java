@@ -7,19 +7,19 @@ import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1ClusterRole;
 import io.kubernetes.client.openapi.models.V1ClusterRoleBinding;
 import io.ten1010.coaster.groupcontroller.core.K8sApis;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
 
 public class ClusterRoleBindingControllerFactory {
 
     private SharedInformerFactory informerFactory;
-    private Indexer<V1ResourceGroup> groupIndexer;
+    private Indexer<V1Beta1ResourceGroup> groupIndexer;
     private Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer;
     private Indexer<V1ClusterRole> clusterRoleIndexer;
     private K8sApis k8sApis;
 
     public ClusterRoleBindingControllerFactory(
             SharedInformerFactory informerFactory,
-            Indexer<V1ResourceGroup> groupIndexer,
+            Indexer<V1Beta1ResourceGroup> groupIndexer,
             Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer,
             Indexer<V1ClusterRole> clusterRoleIndexer,
             K8sApis k8sApis) {

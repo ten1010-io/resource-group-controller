@@ -8,7 +8,7 @@ import org.springframework.lang.Nullable;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class K8sObjectReference {
+public class V1Beta1K8sObjectReference {
 
     @Nullable
     private String namespace;

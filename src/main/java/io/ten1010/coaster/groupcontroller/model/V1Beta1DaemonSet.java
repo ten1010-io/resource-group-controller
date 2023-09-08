@@ -12,11 +12,11 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class Exceptions {
+public class V1Beta1DaemonSet {
 
-    private List<K8sObjectReference> daemonSets;
+    private List<V1Beta1K8sObjectReference> daemonSets;
 
-    public Exceptions() {
+    public V1Beta1DaemonSet() {
         this.daemonSets = new ArrayList<>();
     }
 

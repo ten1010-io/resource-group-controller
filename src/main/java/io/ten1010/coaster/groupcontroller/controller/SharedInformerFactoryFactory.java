@@ -4,7 +4,7 @@ import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.core.*;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
 
 import java.util.List;
 import java.util.Map;
@@ -15,15 +15,15 @@ public class SharedInformerFactoryFactory {
 
     public static long RESYNC_PERIOD_IN_MILLIS = 30000;
 
-    private static Map<String, Function<V1ResourceGroup, List<String>>> byNodeNameToGroupObject() {
+    private static Map<String, Function<V1Beta1ResourceGroup, List<String>>> byNodeNameToGroupObject() {
         return Map.of(IndexNames.BY_NODE_NAME_TO_GROUP_OBJECT, ResourceGroupUtil::getNodes);
     }
 
-    private static Map<String, Function<V1ResourceGroup, List<String>>> byNamespaceNameToGroupObject() {
+    private static Map<String, Function<V1Beta1ResourceGroup, List<String>>> byNamespaceNameToGroupObject() {
         return Map.of(IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, ResourceGroupUtil::getNamespaces);
     }
 
-    private static Map<String, Function<V1ResourceGroup, List<String>>> byDaemonSetKeyToGroupObject() {
+    private static Map<String, Function<V1Beta1ResourceGroup, List<String>>> byDaemonSetKeyToGroupObject() {
         return Map.of(IndexNames.BY_DAEMON_SET_KEY_TO_GROUP_OBJECT, object -> ResourceGroupUtil.getDaemonSets(object).stream()
                 .map(KeyUtil::getKey)
                 .collect(Collectors.toList()));
@@ -77,9 +77,9 @@ public class SharedInformerFactoryFactory {
 
     public SharedInformerFactory create() {
         SharedInformerFactory informerFactory = new SharedInformerFactory(this.k8sApis.getApiClient());
-        SharedIndexInformer<V1ResourceGroup> groupInformer = informerFactory.sharedIndexInformerFor(
+        SharedIndexInformer<V1Beta1ResourceGroup> groupInformer = informerFactory.sharedIndexInformerFor(
                 this.k8sApis.getResourceGroupApi(),
-                V1ResourceGroup.class,
+                V1Beta1ResourceGroup.class,
                 RESYNC_PERIOD_IN_MILLIS);
         groupInformer.addIndexers(byNodeNameToGroupObject());
         groupInformer.addIndexers(byNamespaceNameToGroupObject());

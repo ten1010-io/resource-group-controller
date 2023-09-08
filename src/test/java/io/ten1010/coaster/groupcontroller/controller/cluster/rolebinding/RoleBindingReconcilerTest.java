@@ -6,8 +6,8 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ import java.util.List;
 class RoleBindingReconcilerTest {
 
     Indexer<V1Namespace> namespaceIndexer;
-    Indexer<V1ResourceGroup> groupIndexer;
+    Indexer<V1Beta1ResourceGroup> groupIndexer;
     Indexer<V1RoleBinding> roleBindingIndexer;
     Indexer<V1Role> roleIndexer;
     RbacAuthorizationV1Api rbacAuthorizationV1Api;
@@ -34,12 +34,12 @@ class RoleBindingReconcilerTest {
 
     @Test
     void should_create_the_role_binding() {
-        V1ResourceGroup group1 = new V1ResourceGroup();
+        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         meta1.setUid("group1-uid");
         group1.setMetadata(meta1);
-        V1ResourceGroupSpec spec1 = new V1ResourceGroupSpec();
+        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
         spec1.setNamespaces(List.of("ns1"));
         V1Subject subject = new V1Subject();
         subject.setApiGroup("rbac.authorization.k8s.io");
@@ -55,15 +55,15 @@ class RoleBindingReconcilerTest {
 
         Mockito.doReturn(group1).when(this.groupIndexer).getByKey("group1");
         Mockito.doReturn(ns1).when(this.namespaceIndexer).getByKey("ns1");
-        Mockito.doReturn(null).when(this.roleBindingIndexer).getByKey(KeyUtil.buildKey("ns1", "resource-group-controller.ten1010.io:group1"));
-        Mockito.doReturn(new V1Role()).when(this.roleIndexer).getByKey(KeyUtil.buildKey("ns1", "resource-group-controller.ten1010.io:group1"));
+        Mockito.doReturn(null).when(this.roleBindingIndexer).getByKey(KeyUtil.buildKey("ns1", "resource-group-controller.resource-group.ten1010.io:group1"));
+        Mockito.doReturn(new V1Role()).when(this.roleIndexer).getByKey(KeyUtil.buildKey("ns1", "resource-group-controller.resource-group.ten1010.io:group1"));
         RoleBindingReconciler roleBindingReconciler = new RoleBindingReconciler(
                 this.namespaceIndexer,
                 this.groupIndexer,
                 this.roleBindingIndexer,
                 this.roleIndexer,
                 this.rbacAuthorizationV1Api);
-        roleBindingReconciler.reconcile(new Request("ns1", "resource-group-controller.ten1010.io:group1"));
+        roleBindingReconciler.reconcile(new Request("ns1", "resource-group-controller.resource-group.ten1010.io:group1"));
         try {
             Mockito.verify(this.rbacAuthorizationV1Api).createNamespacedRoleBinding(
                     Mockito.eq("ns1"),
@@ -71,13 +71,13 @@ class RoleBindingReconcilerTest {
                         if (!roleBinding.getMetadata().getNamespace().equals("ns1")) {
                             return false;
                         }
-                        if (!roleBinding.getMetadata().getName().equals("resource-group-controller.ten1010.io:group1")) {
+                        if (!roleBinding.getMetadata().getName().equals("resource-group-controller.resource-group.ten1010.io:group1")) {
                             return false;
                         }
                         V1RoleRef roleRef = new V1RoleRef();
                         roleRef.setApiGroup("rbac.authorization.k8s.io");
                         roleRef.setKind("Role");
-                        roleRef.setName("resource-group-controller.ten1010.io:group1");
+                        roleRef.setName("resource-group-controller.resource-group.ten1010.io:group1");
                         if (!roleBinding.getRoleRef().equals(roleRef)) {
                             return false;
                         }

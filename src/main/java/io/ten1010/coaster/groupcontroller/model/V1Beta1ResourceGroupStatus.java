@@ -7,5 +7,5 @@ import lombok.*;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class V1ResourceGroupStatus {
+public class V1Beta1ResourceGroupStatus {
 }

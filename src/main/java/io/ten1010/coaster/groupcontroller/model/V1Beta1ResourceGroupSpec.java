@@ -14,15 +14,15 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class V1ResourceGroupSpec {
+public class V1Beta1ResourceGroupSpec {
 
     private List<String> nodes;
     private List<String> namespaces;
     @Nullable
-    private Exceptions exceptions;
+    private V1Beta1DaemonSet daemonSet;
     private List<V1Subject> subjects;
 
-    public V1ResourceGroupSpec() {
+    public V1Beta1ResourceGroupSpec() {
         this.nodes = new ArrayList<>();
         this.namespaces = new ArrayList<>();
         this.subjects = new ArrayList<>();

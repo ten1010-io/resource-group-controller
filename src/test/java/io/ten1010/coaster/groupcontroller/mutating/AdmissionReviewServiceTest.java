@@ -11,8 +11,8 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
 import io.ten1010.coaster.groupcontroller.core.IndexNames;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroup;
-import io.ten1010.coaster.groupcontroller.model.V1ResourceGroupSpec;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import java.util.List;
 
 class AdmissionReviewServiceTest {
 
-    Indexer<V1ResourceGroup> groupIndexer;
+    Indexer<V1Beta1ResourceGroup> groupIndexer;
     Reconciliation reconciliation;
 
     @BeforeEach
@@ -36,11 +36,11 @@ class AdmissionReviewServiceTest {
 
     @Test
     void should_patch_affinity_and_tolerations() {
-        V1ResourceGroup group1 = new V1ResourceGroup();
+        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
-        V1ResourceGroupSpec spec1 = new V1ResourceGroupSpec();
+        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
         spec1.setNamespaces(List.of("ns1"));
         group1.setSpec(spec1);
 

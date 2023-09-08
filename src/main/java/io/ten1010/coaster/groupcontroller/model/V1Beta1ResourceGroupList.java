@@ -15,7 +15,7 @@ import java.util.List;
 @Setter
 @EqualsAndHashCode
 @ToString
-public class V1ResourceGroupList implements KubernetesListObject {
+public class V1Beta1ResourceGroupList implements KubernetesListObject {
 
     @Nullable
     private String apiVersion;
@@ -23,9 +23,9 @@ public class V1ResourceGroupList implements KubernetesListObject {
     private String kind;
     @Nullable
     private V1ListMeta metadata;
-    private List<V1ResourceGroup> items;
+    private List<V1Beta1ResourceGroup> items;
 
-    public V1ResourceGroupList() {
+    public V1Beta1ResourceGroupList() {
         this.items = new ArrayList<>();
     }
 
