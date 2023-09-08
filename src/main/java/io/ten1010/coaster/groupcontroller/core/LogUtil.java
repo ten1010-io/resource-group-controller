@@ -17,7 +17,7 @@ public final class LogUtil {
                 .append("\n")
                 .append("response body : ")
                 .append("\n")
-                .append(e.getResponseBody())
+                .append(e.getResponseBody().trim())
                 .append("\n");
         sb.append(buildExceptionDetailLog(e, includeStackTrace));
 
