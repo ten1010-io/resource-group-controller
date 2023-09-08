@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resource-group-controller
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: resource-group-controller
+  template:
+    metadata:
+      labels:
+        app: resource-group-controller
+    spec:
+      serviceAccountName: resource-group-controller
+      automountServiceAccountToken: true
+      containers:
+        - name: resource-group-controller
+          image: "{{ .Values.image.repository }}:{{ include "resource-group-controller.version" . }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          envFrom:
+            - configMapRef:
+                name: resource-group-controller-envs
+          volumeMounts:
+            - name: tls
+              readOnly: true
+              mountPath: {{ .Values.app.certificatePath }}
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 1
+              preference:
+                matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: Exists
+      tolerations:
+        - key: "node-role.kubernetes.io/control-plane"
+          operator: "Exists"
+          effect: "NoSchedule"
+      volumes:
+        - name: tls
+          projected:
+            sources:
+              - secret:
+                  name: resource-group-controller-tls
+                  items:
+                    - key: tls.crt
+                      path: "tls.crt"
+                    - key: tls.key
+                      path: "tls.key"
+                    - key: ca.crt
+                      path: "ca.crt"
