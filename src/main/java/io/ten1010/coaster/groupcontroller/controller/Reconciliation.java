@@ -2,6 +2,7 @@ package io.ten1010.coaster.groupcontroller.controller;
 
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.*;
+import io.ten1010.coaster.groupcontroller.configuration.property.SchedulingProperties;
 import io.ten1010.coaster.groupcontroller.core.*;
 import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
 import org.springframework.lang.Nullable;
@@ -15,7 +16,18 @@ import java.util.stream.Stream;
 
 public class Reconciliation {
 
-    private static Optional<V1Affinity> reconcileAffinity(@Nullable V1Affinity existingAffinity, List<V1Beta1ResourceGroup> groups) {
+    private static final int PREFERRED_SCHEDULING_TERM_WEIGHT = 1;
+
+    private static Optional<V1Affinity> reconcileAffinity(@Nullable V1Affinity existingAffinity, List<V1Beta1ResourceGroup> groups, SchedulingProperties schedulingProperties) {
+        if (existingAffinity == null && groups.isEmpty()) {
+            return Optional.empty();
+        }
+        return schedulingProperties.isSchedulingGroupNodeOnly()
+                ? reconcileRequiredAffinity(existingAffinity, groups)
+                : reconcilePreferredAffinity(existingAffinity, groups);
+    }
+
+    private static Optional<V1Affinity> reconcileRequiredAffinity(@Nullable V1Affinity existingAffinity, List<V1Beta1ResourceGroup> groups) {
         if (existingAffinity == null) {
             List<V1NodeSelectorRequirement> reconciledExpressions = reconcileMatchExpressions(new ArrayList<>(), groups);
             if (reconciledExpressions == null) {
@@ -62,7 +74,9 @@ public class Reconciliation {
                     .endNodeAffinity()
                     .build());
         }
-        List<V1NodeSelectorTerm> reconciledTerms = existingAffinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution().getNodeSelectorTerms().stream()
+        List<V1NodeSelectorTerm> reconciledTerms = existingAffinity.getNodeAffinity()
+                .getRequiredDuringSchedulingIgnoredDuringExecution()
+                .getNodeSelectorTerms().stream()
                 .map(term -> new V1NodeSelectorTermBuilder(term)
                         .withMatchExpressions(reconcileMatchExpressions(term.getMatchExpressions(), groups))
                         .build())
@@ -72,6 +86,52 @@ public class Reconciliation {
                 .editRequiredDuringSchedulingIgnoredDuringExecution()
                 .withNodeSelectorTerms(reconciledTerms)
                 .endRequiredDuringSchedulingIgnoredDuringExecution()
+                .endNodeAffinity()
+                .build());
+    }
+
+    private static Optional<V1Affinity> reconcilePreferredAffinity(@Nullable V1Affinity existingAffinity, List<V1Beta1ResourceGroup> groups) {
+        if (existingAffinity == null) {
+            List<V1NodeSelectorRequirement> reconciledExpressions = reconcileMatchExpressions(new ArrayList<>(), groups);
+            if (reconciledExpressions == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new V1AffinityBuilder()
+                    .withNewNodeAffinity()
+                    .withPreferredDuringSchedulingIgnoredDuringExecution(
+                            buildResourceGroupExclusivePreferredSchedulingTerm(groups)
+                    )
+                    .endNodeAffinity()
+                    .build());
+        }
+        V1AffinityBuilder builder = new V1AffinityBuilder(existingAffinity);
+        if (existingAffinity.getNodeAffinity() == null) {
+            List<V1PreferredSchedulingTerm> reconciledTerms = reconcilePreferredSchedulingTerms(new ArrayList<>(), groups);
+            if (reconciledTerms == null) {
+                return Optional.of(builder.build());
+            }
+            return Optional.of(builder
+                    .withNewNodeAffinity()
+                    .withPreferredDuringSchedulingIgnoredDuringExecution(reconciledTerms)
+                    .endNodeAffinity()
+                    .build());
+        }
+        if (existingAffinity.getNodeAffinity().getPreferredDuringSchedulingIgnoredDuringExecution() == null) {
+            List<V1PreferredSchedulingTerm> reconciledTerms = reconcilePreferredSchedulingTerms(new ArrayList<>(), groups);
+            if (reconciledTerms == null) {
+                return Optional.of(builder.build());
+            }
+            return Optional.of(new V1AffinityBuilder(existingAffinity)
+                    .editNodeAffinity()
+                    .withPreferredDuringSchedulingIgnoredDuringExecution(reconciledTerms)
+                    .endNodeAffinity()
+                    .build());
+        }
+        List<V1PreferredSchedulingTerm> reconciledTerms = reconcilePreferredSchedulingTerms(
+                existingAffinity.getNodeAffinity().getPreferredDuringSchedulingIgnoredDuringExecution(), groups);
+        return Optional.of(builder
+                .editNodeAffinity()
+                .withPreferredDuringSchedulingIgnoredDuringExecution(reconciledTerms)
                 .endNodeAffinity()
                 .build());
     }
@@ -162,11 +222,50 @@ public class Reconciliation {
         return expressions;
     }
 
+    @Nullable
+    private static V1NodeSelectorTerm reconcilePreference(V1NodeSelectorTerm existingPreference, List<V1Beta1ResourceGroup> groups) {
+        if (existingPreference.getMatchExpressions() == null) {
+            return null;
+        }
+        List<V1NodeSelectorRequirement> expressions = reconcileMatchExpressions(existingPreference.getMatchExpressions(), groups);
+        if (expressions.isEmpty()) {
+            return null;
+        }
+        return new V1NodeSelectorTermBuilder()
+                .withMatchExpressions(expressions)
+                .build();
+    }
+
+    @Nullable
+    private static List<V1PreferredSchedulingTerm> reconcilePreferredSchedulingTerms(@Nullable List<V1PreferredSchedulingTerm> existingTerms, List<V1Beta1ResourceGroup> groups) {
+        if (existingTerms == null) {
+            List<V1PreferredSchedulingTerm> terms = List.of(buildResourceGroupExclusivePreferredSchedulingTerm(groups));
+            if (terms.isEmpty()) {
+                return null;
+            }
+            return terms;
+        }
+        return existingTerms.stream()
+                .map(term -> new V1PreferredSchedulingTermBuilder()
+                        .withPreference(reconcilePreference(term.getPreference(), groups))
+                        .withWeight(term.getWeight())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
     private static List<V1NodeSelectorRequirement> extractNonResourceGroupExclusiveMatchExpressions(List<V1NodeSelectorRequirement> existingExpressions) {
         return existingExpressions
                 .stream()
                 .filter(exp -> !isResourceGroupExclusiveNodeSelectorRequirement(exp))
                 .collect(Collectors.toList());
+    }
+
+    private static V1PreferredSchedulingTerm buildResourceGroupExclusivePreferredSchedulingTerm(List<V1Beta1ResourceGroup> groups) {
+        return new V1PreferredSchedulingTermBuilder()
+                .withPreference(new V1NodeSelectorTermBuilder()
+                        .withMatchExpressions(buildResourceGroupExclusiveMatchExpressions(groups)).build())
+                .withWeight(PREFERRED_SCHEDULING_TERM_WEIGHT)
+                .build();
     }
 
     private static List<V1NodeSelectorRequirement> buildResourceGroupExclusiveMatchExpressions(List<V1Beta1ResourceGroup> groups) {
@@ -223,9 +322,11 @@ public class Reconciliation {
     }
 
     private Indexer<V1Beta1ResourceGroup> groupIndexer;
+    private SchedulingProperties schedulingProperties;
 
-    public Reconciliation(Indexer<V1Beta1ResourceGroup> groupIndexer) {
+    public Reconciliation(Indexer<V1Beta1ResourceGroup> groupIndexer, SchedulingProperties schedulingProperties) {
         this.groupIndexer = groupIndexer;
+        this.schedulingProperties = schedulingProperties;
     }
 
     public Optional<V1Affinity> reconcileUncontrolledCronJobAffinity(V1CronJob cronJob) {
@@ -235,7 +336,7 @@ public class Reconciliation {
         List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(cronJob));
 
-        return reconcileAffinity(CronJobUtil.getAffinity(cronJob).orElse(null), groups);
+        return reconcileAffinity(CronJobUtil.getAffinity(cronJob).orElse(null), groups, this.schedulingProperties);
     }
 
     public Optional<V1Affinity> reconcileUncontrolledDaemonSetAffinity(V1DaemonSet daemonSet) {
@@ -252,7 +353,7 @@ public class Reconciliation {
         List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(deployment));
 
-        return reconcileAffinity(DeploymentUtil.getAffinity(deployment).orElse(null), groups);
+        return reconcileAffinity(DeploymentUtil.getAffinity(deployment).orElse(null), groups, this.schedulingProperties);
     }
 
     public Optional<V1Affinity> reconcileUncontrolledJobAffinity(V1Job job) {
@@ -262,7 +363,7 @@ public class Reconciliation {
         List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(job));
 
-        return reconcileAffinity(JobUtil.getAffinity(job).orElse(null), groups);
+        return reconcileAffinity(JobUtil.getAffinity(job).orElse(null), groups, this.schedulingProperties);
     }
 
     public Optional<V1Affinity> reconcileUncontrolledPodAffinity(V1Pod pod) {
@@ -272,7 +373,7 @@ public class Reconciliation {
         List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(pod));
 
-        return reconcileAffinity(PodUtil.getAffinity(pod).orElse(null), groups);
+        return reconcileAffinity(PodUtil.getAffinity(pod).orElse(null), groups, this.schedulingProperties);
     }
 
     public Optional<V1Affinity> reconcileUncontrolledReplicaSetAffinity(V1ReplicaSet replicaSet) {
@@ -282,7 +383,7 @@ public class Reconciliation {
         List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(replicaSet));
 
-        return reconcileAffinity(ReplicaSetUtil.getAffinity(replicaSet).orElse(null), groups);
+        return reconcileAffinity(ReplicaSetUtil.getAffinity(replicaSet).orElse(null), groups, this.schedulingProperties);
     }
 
     public Optional<V1Affinity> reconcileUncontrolledReplicationControllerAffinity(V1ReplicationController replicationController) {
@@ -292,7 +393,7 @@ public class Reconciliation {
         List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(replicationController));
 
-        return reconcileAffinity(ReplicationControllerUtil.getAffinity(replicationController).orElse(null), groups);
+        return reconcileAffinity(ReplicationControllerUtil.getAffinity(replicationController).orElse(null), groups, this.schedulingProperties);
     }
 
     public Optional<V1Affinity> reconcileUncontrolledStatefulSetAffinity(V1StatefulSet statefulSet) {
@@ -302,7 +403,7 @@ public class Reconciliation {
         List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
                 IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getNamespace(statefulSet));
 
-        return reconcileAffinity(StatefulSetUtil.getAffinity(statefulSet).orElse(null), groups);
+        return reconcileAffinity(StatefulSetUtil.getAffinity(statefulSet).orElse(null), groups, this.schedulingProperties);
     }
 
     public List<V1Toleration> reconcileUncontrolledCronJobTolerations(V1CronJob cronJob) {

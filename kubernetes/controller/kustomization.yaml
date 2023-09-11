@@ -6,6 +6,7 @@ configMapGenerator:
       - SPRING_PROFILES_ACTIVE=production
       - LOGGING_LEVEL_IO_TEN1010_COASTER_GROUPCONTROLLER=info
       - SERVER_SSL_KEY_STORE=/etc/resource-group-controller/tls/tls.p12
+      - APP_SCHEDULING_GROUP_NODE_ONLY=true
 secretGenerator:
   - name: resource-group-controller-envs
     literals:

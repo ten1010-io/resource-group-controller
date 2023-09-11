@@ -8,6 +8,7 @@ import io.kubernetes.client.extended.event.legacy.LegacyEventBroadcaster;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1EventSource;
+import io.ten1010.coaster.groupcontroller.configuration.property.SchedulingProperties;
 import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
 import io.ten1010.coaster.groupcontroller.controller.SharedInformerFactoryFactory;
 import io.ten1010.coaster.groupcontroller.core.K8sApis;
@@ -49,11 +50,11 @@ public class ControllerConfiguration {
     }
 
     @Bean
-    public Reconciliation reconciliation(SharedInformerFactory sharedInformerFactory) {
+    public Reconciliation reconciliation(SharedInformerFactory sharedInformerFactory, SchedulingProperties schedulingProperties) {
         Indexer<V1Beta1ResourceGroup> groupIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1Beta1ResourceGroup.class)
                 .getIndexer();
-        return new Reconciliation(groupIndexer);
+        return new Reconciliation(groupIndexer, schedulingProperties);
     }
 
     @Bean(initMethod = "startRecording", destroyMethod = "shutdown")
