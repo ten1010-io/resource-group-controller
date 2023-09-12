@@ -291,7 +291,12 @@ public class Reconciliation {
         List<V1Beta2ResourceGroup> groupsContainingDaemonSet = this.groupIndexer.byIndex(
                 IndexNames.BY_DAEMON_SET_KEY_TO_GROUP_OBJECT,
                 KeyUtil.buildKey(K8sObjectUtil.getNamespace(daemonSet), K8sObjectUtil.getName(daemonSet)));
-        List<V1Beta2ResourceGroup> groups = Stream.concat(groupsContainingNamespace.stream(), groupsContainingDaemonSet.stream())
+        List<V1Beta2ResourceGroup> groupsAllowingAllDaemonSet = this.groupIndexer.byIndex(
+                IndexNames.BY_GROUP_ALLOW_ALL_DAEMON_SET_TO_GROUP_OBJECT, Boolean.TRUE.toString()
+        );
+        List<V1Beta2ResourceGroup> groups = Stream.of(
+                        groupsContainingNamespace, groupsContainingDaemonSet, groupsAllowingAllDaemonSet)
+                .flatMap(Collection::stream)
                 .distinct()
                 .collect(Collectors.toList());
 
