@@ -11,7 +11,7 @@ import io.kubernetes.client.openapi.models.V1EventSource;
 import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
 import io.ten1010.coaster.groupcontroller.controller.SharedInformerFactoryFactory;
 import io.ten1010.coaster.groupcontroller.core.K8sApis;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,8 +50,8 @@ public class ControllerConfiguration {
 
     @Bean
     public Reconciliation reconciliation(SharedInformerFactory sharedInformerFactory) {
-        Indexer<V1Beta1ResourceGroup> groupIndexer = sharedInformerFactory
-                .getExistingSharedIndexInformer(V1Beta1ResourceGroup.class)
+        Indexer<V1Beta2ResourceGroup> groupIndexer = sharedInformerFactory
+                .getExistingSharedIndexInformer(V1Beta2ResourceGroup.class)
                 .getIndexer();
         return new Reconciliation(groupIndexer);
     }

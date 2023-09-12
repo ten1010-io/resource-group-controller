@@ -8,7 +8,7 @@ import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1Namespace;
 import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
 
 import java.time.Duration;
 import java.util.List;
@@ -20,18 +20,18 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
     public static class EventHandler implements ResourceEventHandler<V1Namespace> {
 
         private WorkQueue<Request> queue;
-        private Indexer<V1Beta1ResourceGroup> groupIndexer;
+        private Indexer<V1Beta2ResourceGroup> groupIndexer;
 
         public EventHandler(
                 WorkQueue<Request> queue,
-                Indexer<V1Beta1ResourceGroup> groupIndexer) {
+                Indexer<V1Beta2ResourceGroup> groupIndexer) {
             this.queue = queue;
             this.groupIndexer = groupIndexer;
         }
 
         @Override
         public void onAdd(V1Namespace obj) {
-            List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(obj));
+            List<V1Beta2ResourceGroup> groups = this.groupIndexer.byIndex(IndexNames.BY_NAMESPACE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(obj));
             groups.stream()
                     .map(group -> {
                         String bindingName = new ResourceGroupRoleBindingName(K8sObjectUtil.getName(group)).getName();
@@ -51,11 +51,11 @@ public class NamespaceWatch implements ControllerWatch<V1Namespace> {
     }
 
     private WorkQueue<Request> queue;
-    private Indexer<V1Beta1ResourceGroup> groupIndexer;
+    private Indexer<V1Beta2ResourceGroup> groupIndexer;
 
     public NamespaceWatch(
             WorkQueue<Request> queue,
-            Indexer<V1Beta1ResourceGroup> groupIndexer) {
+            Indexer<V1Beta2ResourceGroup> groupIndexer) {
         this.queue = queue;
         this.groupIndexer = groupIndexer;
     }

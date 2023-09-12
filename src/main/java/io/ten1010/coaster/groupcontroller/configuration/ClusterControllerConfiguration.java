@@ -11,7 +11,7 @@ import io.ten1010.coaster.groupcontroller.controller.cluster.node.NodeController
 import io.ten1010.coaster.groupcontroller.controller.cluster.role.RoleControllerFactory;
 import io.ten1010.coaster.groupcontroller.controller.cluster.rolebinding.RoleBindingControllerFactory;
 import io.ten1010.coaster.groupcontroller.core.K8sApis;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,8 +26,8 @@ public class ClusterControllerConfiguration {
         Indexer<V1Node> nodeIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1Node.class)
                 .getIndexer();
-        Indexer<V1Beta1ResourceGroup> groupIndexer = sharedInformerFactory
-                .getExistingSharedIndexInformer(V1Beta1ResourceGroup.class)
+        Indexer<V1Beta2ResourceGroup> groupIndexer = sharedInformerFactory
+                .getExistingSharedIndexInformer(V1Beta2ResourceGroup.class)
                 .getIndexer();
         return new NodeControllerFactory(sharedInformerFactory, nodeIndexer, groupIndexer, k8sApis, eventRecorder)
                 .create();
@@ -43,8 +43,8 @@ public class ClusterControllerConfiguration {
         Indexer<V1Namespace> namespaceIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1Namespace.class)
                 .getIndexer();
-        Indexer<V1Beta1ResourceGroup> groupIndexer = sharedInformerFactory
-                .getExistingSharedIndexInformer(V1Beta1ResourceGroup.class)
+        Indexer<V1Beta2ResourceGroup> groupIndexer = sharedInformerFactory
+                .getExistingSharedIndexInformer(V1Beta2ResourceGroup.class)
                 .getIndexer();
         return new RoleControllerFactory(
                 sharedInformerFactory,
@@ -67,8 +67,8 @@ public class ClusterControllerConfiguration {
         Indexer<V1Namespace> namespaceIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1Namespace.class)
                 .getIndexer();
-        Indexer<V1Beta1ResourceGroup> groupIndexer = sharedInformerFactory
-                .getExistingSharedIndexInformer(V1Beta1ResourceGroup.class)
+        Indexer<V1Beta2ResourceGroup> groupIndexer = sharedInformerFactory
+                .getExistingSharedIndexInformer(V1Beta2ResourceGroup.class)
                 .getIndexer();
         return new RoleBindingControllerFactory(
                 sharedInformerFactory,
@@ -86,8 +86,8 @@ public class ClusterControllerConfiguration {
         Indexer<V1ClusterRole> clusterRoleIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1ClusterRole.class)
                 .getIndexer();
-        Indexer<V1Beta1ResourceGroup> groupIndexer = sharedInformerFactory
-                .getExistingSharedIndexInformer(V1Beta1ResourceGroup.class)
+        Indexer<V1Beta2ResourceGroup> groupIndexer = sharedInformerFactory
+                .getExistingSharedIndexInformer(V1Beta2ResourceGroup.class)
                 .getIndexer();
         return new ClusterRoleControllerFactory(
                 sharedInformerFactory,
@@ -106,8 +106,8 @@ public class ClusterControllerConfiguration {
         Indexer<V1ClusterRole> clusterRoleIndexer = sharedInformerFactory
                 .getExistingSharedIndexInformer(V1ClusterRole.class)
                 .getIndexer();
-        Indexer<V1Beta1ResourceGroup> groupIndexer = sharedInformerFactory
-                .getExistingSharedIndexInformer(V1Beta1ResourceGroup.class)
+        Indexer<V1Beta2ResourceGroup> groupIndexer = sharedInformerFactory
+                .getExistingSharedIndexInformer(V1Beta2ResourceGroup.class)
                 .getIndexer();
         return new ClusterRoleBindingControllerFactory(
                 sharedInformerFactory,

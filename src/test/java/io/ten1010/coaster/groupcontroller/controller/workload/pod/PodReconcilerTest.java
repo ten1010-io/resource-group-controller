@@ -10,8 +10,8 @@ import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.core.Labels;
 import io.ten1010.coaster.groupcontroller.core.Taints;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupSpec;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ import java.util.List;
 
 class PodReconcilerTest {
 
-    Indexer<V1Beta1ResourceGroup> groupIndexer;
+    Indexer<V1Beta2ResourceGroup> groupIndexer;
     Reconciliation reconciliation;
     Indexer<V1Pod> podIndexer;
     CoreV1Api coreV1Api;
@@ -37,11 +37,11 @@ class PodReconcilerTest {
 
     @Test
     void given_pod_that_has_invalid_tolerations_when_reconcile_the_pod_then_should_delete_the_pod() {
-        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
+        V1Beta2ResourceGroup group1 = new V1Beta2ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
-        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
+        V1Beta2ResourceGroupSpec spec1 = new V1Beta2ResourceGroupSpec();
         spec1.setNamespaces(List.of("ns1"));
         group1.setSpec(spec1);
 
@@ -91,12 +91,12 @@ class PodReconcilerTest {
 
     @Test
     void given_pod_has_proper_tolerations_when_reconcile_the_pod_then_should_do_nothing() {
-        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
+        V1Beta2ResourceGroup group1 = new V1Beta2ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
 
-        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
+        V1Beta2ResourceGroupSpec spec1 = new V1Beta2ResourceGroupSpec();
         spec1.setNamespaces(List.of("ns1"));
         group1.setSpec(spec1);
 
@@ -141,11 +141,11 @@ class PodReconcilerTest {
 
     @Test
     void given_pod_has_tolerations_for_not_existing_group_then_should_delete_pod() {
-        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
+        V1Beta2ResourceGroup group1 = new V1Beta2ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
-        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
+        V1Beta2ResourceGroupSpec spec1 = new V1Beta2ResourceGroupSpec();
         spec1.setNamespaces(List.of("ns1"));
         group1.setSpec(spec1);
         V1Pod pod1 = new V1Pod();
@@ -198,11 +198,11 @@ class PodReconcilerTest {
 
     @Test
     void given_pod_does_not_have_affinity_for_group_then_should_delete_pod() {
-        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
+        V1Beta2ResourceGroup group1 = new V1Beta2ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
-        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
+        V1Beta2ResourceGroupSpec spec1 = new V1Beta2ResourceGroupSpec();
         spec1.setNamespaces(List.of("ns1"));
         group1.setSpec(spec1);
         V1Pod pod1 = new V1Pod();
@@ -244,11 +244,11 @@ class PodReconcilerTest {
 
     @Test
     void given_pod_has_proper_node_affinity_then_do_nothing() {
-        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
+        V1Beta2ResourceGroup group1 = new V1Beta2ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
-        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
+        V1Beta2ResourceGroupSpec spec1 = new V1Beta2ResourceGroupSpec();
         spec1.setNamespaces(List.of("ns1"));
         group1.setSpec(spec1);
 

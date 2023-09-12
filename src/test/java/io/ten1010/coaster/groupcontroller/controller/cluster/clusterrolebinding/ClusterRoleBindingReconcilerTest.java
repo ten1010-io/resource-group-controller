@@ -6,8 +6,8 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.RbacAuthorizationV1Api;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupSpec;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,7 +17,7 @@ import java.util.List;
 
 class ClusterRoleBindingReconcilerTest {
 
-    Indexer<V1Beta1ResourceGroup> groupIndexer;
+    Indexer<V1Beta2ResourceGroup> groupIndexer;
     Indexer<V1ClusterRoleBinding> clusterRoleBindingIndexer;
     Indexer<V1ClusterRole> clusterRoleIndexer;
     RbacAuthorizationV1Api rbacAuthorizationV1Api;
@@ -32,12 +32,12 @@ class ClusterRoleBindingReconcilerTest {
 
     @Test
     void should_create_the_cluster_role_binding() {
-        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
+        V1Beta2ResourceGroup group1 = new V1Beta2ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         meta1.setUid("group1-uid");
         group1.setMetadata(meta1);
-        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
+        V1Beta2ResourceGroupSpec spec1 = new V1Beta2ResourceGroupSpec();
         V1Subject subject = new V1Subject();
         subject.setApiGroup("rbac.authorization.k8s.io");
         subject.setKind("User");

@@ -12,8 +12,8 @@ import io.kubernetes.client.openapi.models.V1Taint;
 import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.core.Labels;
 import io.ten1010.coaster.groupcontroller.core.Taints;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupSpec;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 class NodeReconcilerTest {
 
     Indexer<V1Node> nodeIndexer;
-    Indexer<V1Beta1ResourceGroup> groupIndexer;
+    Indexer<V1Beta2ResourceGroup> groupIndexer;
     CoreV1Api coreV1Api;
     EventRecorder eventRecorder;
 
@@ -39,11 +39,11 @@ class NodeReconcilerTest {
 
     @Test
     void should_patch_labels_and_taints_of_the_node() {
-        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
+        V1Beta2ResourceGroup group1 = new V1Beta2ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
-        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
+        V1Beta2ResourceGroupSpec spec1 = new V1Beta2ResourceGroupSpec();
         spec1.setNodes(List.of("node1"));
         group1.setSpec(spec1);
 
@@ -98,13 +98,13 @@ class NodeReconcilerTest {
 
     @Test
     void should_do_nothing_the_given_labels_and_taints_of_node_are_equal_with_resource_groups() {
-        V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
+        V1Beta2ResourceGroup group1 = new V1Beta2ResourceGroup();
 
         V1ObjectMeta meta1 = new V1ObjectMeta();
         meta1.setName("group1");
         group1.setMetadata(meta1);
 
-        V1Beta1ResourceGroupSpec spec1 = new V1Beta1ResourceGroupSpec();
+        V1Beta2ResourceGroupSpec spec1 = new V1Beta2ResourceGroupSpec();
         spec1.setNodes(List.of("node1"));
         group1.setSpec(spec1);
 

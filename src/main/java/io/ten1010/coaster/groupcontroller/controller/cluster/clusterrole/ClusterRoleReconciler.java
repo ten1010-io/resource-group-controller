@@ -10,7 +10,7 @@ import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
 import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -44,7 +44,7 @@ public class ClusterRoleReconciler implements Reconciler {
         return List.of(groupApiRule, nodeApiRule, namespaceApiRule);
     }
 
-    private static List<V1PolicyRule> buildRules(V1Beta1ResourceGroup group) {
+    private static List<V1PolicyRule> buildRules(V1Beta2ResourceGroup group) {
         String groupName = K8sObjectUtil.getName(group);
         Objects.requireNonNull(group.getSpec());
         return buildRules(List.of(groupName), group.getSpec().getNodes(), group.getSpec().getNamespaces());
@@ -56,16 +56,16 @@ public class ClusterRoleReconciler implements Reconciler {
 
     private static V1OwnerReference buildOwnerReference(String groupName, String groupUid) {
         V1OwnerReferenceBuilder builder = new V1OwnerReferenceBuilder();
-        return builder.withApiVersion(V1Beta1ResourceGroup.API_VERSION)
+        return builder.withApiVersion(V1Beta2ResourceGroup.API_VERSION)
                 .withBlockOwnerDeletion(true)
                 .withController(true)
-                .withKind(V1Beta1ResourceGroup.KIND)
+                .withKind(V1Beta2ResourceGroup.KIND)
                 .withName(groupName)
                 .withUid(groupUid)
                 .build();
     }
 
-    private static V1OwnerReference buildOwnerReference(V1Beta1ResourceGroup group) {
+    private static V1OwnerReference buildOwnerReference(V1Beta2ResourceGroup group) {
         Objects.requireNonNull(group.getMetadata());
         Objects.requireNonNull(group.getMetadata().getName());
         Objects.requireNonNull(group.getMetadata().getUid());
@@ -73,12 +73,12 @@ public class ClusterRoleReconciler implements Reconciler {
     }
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
-    private Indexer<V1Beta1ResourceGroup> groupIndexer;
+    private Indexer<V1Beta2ResourceGroup> groupIndexer;
     private Indexer<V1ClusterRole> clusterRoleIndexer;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
     public ClusterRoleReconciler(
-            Indexer<V1Beta1ResourceGroup> groupIndexer,
+            Indexer<V1Beta2ResourceGroup> groupIndexer,
             Indexer<V1ClusterRole> clusterRoleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
         this.template = new KubernetesApiReconcileExceptionHandlingTemplate(API_CONFLICT_REQUEUE_DURATION, API_FAIL_REQUEUE_DURATION);
@@ -95,7 +95,7 @@ public class ClusterRoleReconciler implements Reconciler {
                         return new Result(false);
                     }
                     String groupName = ResourceGroupClusterRoleName.fromClusterRoleName(request.getName()).getResourceGroupName();
-                    V1Beta1ResourceGroup group = this.groupIndexer.getByKey(groupName);
+                    V1Beta2ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteClusterRoleIfExist(request.getName());
                         return new Result(false);
