@@ -4,10 +4,13 @@ import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.core.*;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2DaemonSet;
 import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroupSpec;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,6 +30,16 @@ public class SharedInformerFactoryFactory {
         return Map.of(IndexNames.BY_DAEMON_SET_KEY_TO_GROUP_OBJECT, object -> ResourceGroupUtil.getDaemonSets(object).stream()
                 .map(KeyUtil::getKey)
                 .collect(Collectors.toList()));
+    }
+
+    private static Map<String, Function<V1Beta2ResourceGroup, List<String>>> byGroupAllowAllDaemonSetToGroupObject() {
+        return Map.of(IndexNames.BY_GROUP_ALLOW_ALL_DAEMON_SET_TO_GROUP_OBJECT, group -> List.of(
+                Optional.ofNullable(group.getSpec())
+                        .map(V1Beta2ResourceGroupSpec::getDaemonSet)
+                        .map(V1Beta2DaemonSet::isAllowAll)
+                        .map(v -> Boolean.toString(v))
+                        .orElseThrow()
+        ));
     }
 
     private static Map<String, Function<V1CronJob, List<String>>> byNamespaceNameToCronJobObject() {
@@ -84,6 +97,7 @@ public class SharedInformerFactoryFactory {
         groupInformer.addIndexers(byNodeNameToGroupObject());
         groupInformer.addIndexers(byNamespaceNameToGroupObject());
         groupInformer.addIndexers(byDaemonSetKeyToGroupObject());
+        groupInformer.addIndexers(byGroupAllowAllDaemonSetToGroupObject());
 
         SharedIndexInformer<V1CronJob> cronJobInformer = informerFactory.sharedIndexInformerFor(
                 this.k8sApis.getCronJobApi(),
