@@ -11,10 +11,97 @@ spec:
     shortNames:
       - rgroup
   group: resource-group.ten1010.io
+  conversion:
+    strategy: Webhook
+    webhook:
+      conversionReviewVersions: [ "v1" ]
+      clientConfig:
+        service:
+          namespace: resource-group-controller
+          name: resource-group-controller
+          path: /crdconvert
+          port: 8080
+        caBundle: <CA_BUNDLE>
   versions:
-    - name: v1beta1
+    - name: v1beta2
       served: true
       storage: true
+      additionalPrinterColumns:
+        - name: NODES
+          type: string
+          jsonPath: .spec.nodes
+        - name: NAMESPACES
+          type: string
+          jsonPath: .spec.namespaces
+      subresources:
+        status: { }
+      schema:
+        openAPIV3Schema:
+          type: object
+          required:
+            - metadata
+            - spec
+          properties:
+            metadata:
+              type: object
+            spec:
+              type: object
+              properties:
+                nodes:
+                  type: array
+                  items:
+                    type: string
+                  default: [ ]
+                namespaces:
+                  type: array
+                  items:
+                    type: string
+                  default: [ ]
+                daemonSet:
+                  type: object
+                  properties:
+                    daemonSets:
+                      type: array
+                      items:
+                        type: object
+                        required:
+                          - namespace
+                          - name
+                        properties:
+                          namespace:
+                            type: string
+                          name:
+                            type: string
+                      default: [ ]
+                    allowAll:
+                      type: boolean
+                      default: false
+                  default:
+                    daemonSets: [ ]
+                subjects:
+                  type: array
+                  items:
+                    type: object
+                    required:
+                      - apiGroup
+                      - kind
+                      - name
+                    properties:
+                      apiGroup:
+                        type: string
+                      kind:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                  default: [ ]
+            status:
+              type: object
+    - name: v1beta1
+      served: true
+      storage: false
+      deprecated: true
       additionalPrinterColumns:
         - name: NODES
           type: string
@@ -84,4 +171,3 @@ spec:
                   default: []
             status:
               type: object
----
