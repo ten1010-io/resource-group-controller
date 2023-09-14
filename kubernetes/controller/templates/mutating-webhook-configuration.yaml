@@ -20,17 +20,17 @@ webhooks:
     rules:
       - apiGroups:   [""]
         apiVersions: ["v1"]
-        operations:  ["CREATE"]
+        operations:  [ "CREATE", "UPDATE" ]
         resources:   ["pods", "replicationcontrollers"]
         scope: "*"
       - apiGroups: [ "batch" ]
         apiVersions: [ "v1" ]
-        operations: [ "CREATE" ]
+        operations: [ "CREATE", "UPDATE" ]
         resources: [ "cronjobs", "jobs" ]
         scope: "*"
       - apiGroups: [ "apps" ]
         apiVersions: [ "v1" ]
-        operations: [ "CREATE" ]
+        operations: [ "CREATE", "UPDATE" ]
         resources: [ "daemonsets", "deployments", "replicasets", "statefulsets" ]
         scope: "*"
     sideEffects: None
