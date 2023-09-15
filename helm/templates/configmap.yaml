@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resource-group-controller-envs
+  namespace: {{ .Release.Namespace }}
+
+data:
+  {{- include "resource-group-controller.cm.envs" . | nindent 2 }}
+---

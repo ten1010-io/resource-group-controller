@@ -1,0 +1,9 @@
+apiVersion: v2
+name: resource-group-controller
+description: A Helm chart for resource-group-controller
+
+type: application
+
+version: 1.0.0
+
+appVersion: "1.1.0-SNAPSHOT"
