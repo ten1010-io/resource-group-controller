@@ -14,7 +14,7 @@ import io.kubernetes.client.openapi.models.V1Taint;
 import io.kubernetes.client.openapi.models.V1TaintBuilder;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
 import io.ten1010.coaster.groupcontroller.core.*;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.Nullable;
 
@@ -45,13 +45,13 @@ public class NodeReconciler implements Reconciler {
     }
 
     /**
-     * Check whether given taint has ResourceGroup{@link V1Beta1ResourceGroup} exclusive key.
+     * Check whether given taint has ResourceGroup{@link V1Beta2ResourceGroup} exclusive key.
      * <p>
      * See constant string in TaintConstants{@link Taints}.
      * </p>
      *
      * @param taint
-     * @return {@code true} if this taint has ResourceGroup{@link V1Beta1ResourceGroup} exclusive key
+     * @return {@code true} if this taint has ResourceGroup{@link V1Beta2ResourceGroup} exclusive key
      */
     private static boolean isResourceGroupExclusiveTaint(V1Taint taint) {
         if (taint.getKey() == null) {
@@ -62,12 +62,12 @@ public class NodeReconciler implements Reconciler {
     }
 
     /**
-     * Build exclusive taints for ResourceGroup{@link V1Beta1ResourceGroup} which has no schedule and no execute effect, and has resource group name as value.
+     * Build exclusive taints for ResourceGroup{@link V1Beta2ResourceGroup} which has no schedule and no execute effect, and has resource group name as value.
      *
      * @param group
      * @return a list of taints
      */
-    private static List<V1Taint> buildResourceGroupExclusiveTaints(V1Beta1ResourceGroup group) {
+    private static List<V1Taint> buildResourceGroupExclusiveTaints(V1Beta2ResourceGroup group) {
         V1TaintBuilder baseBuilder = new V1TaintBuilder()
                 .withKey(Taints.KEY_RESOURCE_GROUP_EXCLUSIVE)
                 .withValue(K8sObjectUtil.getName(group));
@@ -80,12 +80,12 @@ public class NodeReconciler implements Reconciler {
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
     private Indexer<V1Node> nodeIndexer;
-    private Indexer<V1Beta1ResourceGroup> groupIndexer;
+    private Indexer<V1Beta2ResourceGroup> groupIndexer;
     private CoreV1Api coreV1Api;
 
     private EventRecorder eventRecorder;
 
-    public NodeReconciler(Indexer<V1Node> nodeIndexer, Indexer<V1Beta1ResourceGroup> groupIndexer, CoreV1Api coreV1Api, EventRecorder eventRecorder) {
+    public NodeReconciler(Indexer<V1Node> nodeIndexer, Indexer<V1Beta2ResourceGroup> groupIndexer, CoreV1Api coreV1Api, EventRecorder eventRecorder) {
         this.template = new KubernetesApiReconcileExceptionHandlingTemplate(API_CONFLICT_REQUEUE_DURATION, API_FAIL_REQUEUE_DURATION);
         this.nodeIndexer = nodeIndexer;
         this.groupIndexer = groupIndexer;
@@ -110,9 +110,9 @@ public class NodeReconciler implements Reconciler {
             }
             log.debug("Node [{}] founded while reconciling\n{}", nodeKey, node.toString());
 
-            List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(IndexNames.BY_NODE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(node));
+            List<V1Beta2ResourceGroup> groups = this.groupIndexer.byIndex(IndexNames.BY_NODE_NAME_TO_GROUP_OBJECT, K8sObjectUtil.getName(node));
             if (groups.size() > 1) {
-                for (V1Beta1ResourceGroup g : groups) {
+                for (V1Beta2ResourceGroup g : groups) {
                     this.eventRecorder.event(
                             g,
                             EventType.Warning,
@@ -139,7 +139,7 @@ public class NodeReconciler implements Reconciler {
      * @param group
      * @return a map has reconciled labels
      */
-    private Map<String, String> reconcileLabels(V1Node node, @Nullable V1Beta1ResourceGroup group) {
+    private Map<String, String> reconcileLabels(V1Node node, @Nullable V1Beta2ResourceGroup group) {
         Map<String, String> labels = getLabels(node);
         labels.remove(Labels.KEY_RESOURCE_GROUP_EXCLUSIVE);
         if (group == null) {
@@ -154,7 +154,7 @@ public class NodeReconciler implements Reconciler {
      * @param group
      * @return a list of reconciled taints
      */
-    private List<V1Taint> reconcileTaints(V1Node node, @Nullable V1Beta1ResourceGroup group) {
+    private List<V1Taint> reconcileTaints(V1Node node, @Nullable V1Beta2ResourceGroup group) {
         List<V1Taint> taints = getTaints(node).stream()
                 .filter(e -> !isResourceGroupExclusiveTaint(e))
                 .collect(Collectors.toList());

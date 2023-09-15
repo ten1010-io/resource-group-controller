@@ -9,8 +9,8 @@ import io.kubernetes.client.openapi.models.V1DaemonSet;
 import io.ten1010.coaster.groupcontroller.controller.EventHandlerUtil;
 import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.core.ResourceGroupUtil;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1K8sObjectReference;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2K8sObjectReference;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -19,16 +19,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class ResourceGroupWatch implements ControllerWatch<V1Beta1ResourceGroup> {
+public class ResourceGroupWatch implements ControllerWatch<V1Beta2ResourceGroup> {
 
     public static final Duration RESYNC_PERIOD = Duration.ofSeconds(30);
 
-    public static class EventHandler implements ResourceEventHandler<V1Beta1ResourceGroup> {
+    public static class EventHandler implements ResourceEventHandler<V1Beta2ResourceGroup> {
 
-        private static Set<V1Beta1K8sObjectReference> getAddedOrDeletedDaemonSets(List<V1Beta1K8sObjectReference> oldDaemonSets, List<V1Beta1K8sObjectReference> newDaemonSets) {
-            Set<V1Beta1K8sObjectReference> deleted = new HashSet<>(oldDaemonSets);
+        private static Set<V1Beta2K8sObjectReference> getAddedOrDeletedDaemonSets(List<V1Beta2K8sObjectReference> oldDaemonSets, List<V1Beta2K8sObjectReference> newDaemonSets) {
+            Set<V1Beta2K8sObjectReference> deleted = new HashSet<>(oldDaemonSets);
             newDaemonSets.forEach(deleted::remove);
-            Set<V1Beta1K8sObjectReference> added = new HashSet<>(newDaemonSets);
+            Set<V1Beta2K8sObjectReference> added = new HashSet<>(newDaemonSets);
             oldDaemonSets.forEach(added::remove);
             deleted.addAll(added);
             return deleted;
@@ -43,7 +43,7 @@ public class ResourceGroupWatch implements ControllerWatch<V1Beta1ResourceGroup>
         }
 
         @Override
-        public void onAdd(V1Beta1ResourceGroup obj) {
+        public void onAdd(V1Beta2ResourceGroup obj) {
             Set<Request> requestsFromNamespaces = ResourceGroupUtil.getNamespaces(obj).stream()
                     .flatMap(this::resolveToDaemonSet)
                     .map(EventHandlerUtil::resolveNamespacedObjectToRequest)
@@ -57,7 +57,7 @@ public class ResourceGroupWatch implements ControllerWatch<V1Beta1ResourceGroup>
         }
 
         @Override
-        public void onUpdate(V1Beta1ResourceGroup oldObj, V1Beta1ResourceGroup newObj) {
+        public void onUpdate(V1Beta2ResourceGroup oldObj, V1Beta2ResourceGroup newObj) {
             Set<Request> requestsFromNamespaces = EventHandlerUtil.getAddedOrDeletedNamespaces(
                             ResourceGroupUtil.getNamespaces(oldObj),
                             ResourceGroupUtil.getNamespaces(newObj))
@@ -77,7 +77,7 @@ public class ResourceGroupWatch implements ControllerWatch<V1Beta1ResourceGroup>
         }
 
         @Override
-        public void onDelete(V1Beta1ResourceGroup obj, boolean deletedFinalStateUnknown) {
+        public void onDelete(V1Beta2ResourceGroup obj, boolean deletedFinalStateUnknown) {
             Set<Request> requestsFromNamespaces = ResourceGroupUtil.getNamespaces(obj).stream()
                     .flatMap(this::resolveToDaemonSet)
                     .map(EventHandlerUtil::resolveNamespacedObjectToRequest)
@@ -106,12 +106,12 @@ public class ResourceGroupWatch implements ControllerWatch<V1Beta1ResourceGroup>
     }
 
     @Override
-    public Class<V1Beta1ResourceGroup> getResourceClass() {
-        return V1Beta1ResourceGroup.class;
+    public Class<V1Beta2ResourceGroup> getResourceClass() {
+        return V1Beta2ResourceGroup.class;
     }
 
     @Override
-    public ResourceEventHandler<V1Beta1ResourceGroup> getResourceEventHandler() {
+    public ResourceEventHandler<V1Beta2ResourceGroup> getResourceEventHandler() {
         return new EventHandler(this.queue, this.daemonSetIndexer);
     }
 

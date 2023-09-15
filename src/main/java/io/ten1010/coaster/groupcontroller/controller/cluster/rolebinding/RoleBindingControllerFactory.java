@@ -8,13 +8,13 @@ import io.kubernetes.client.openapi.models.V1Namespace;
 import io.kubernetes.client.openapi.models.V1Role;
 import io.kubernetes.client.openapi.models.V1RoleBinding;
 import io.ten1010.coaster.groupcontroller.core.K8sApis;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
 
 public class RoleBindingControllerFactory {
 
     private SharedInformerFactory informerFactory;
     private Indexer<V1Namespace> namespaceIndexer;
-    private Indexer<V1Beta1ResourceGroup> groupIndexer;
+    private Indexer<V1Beta2ResourceGroup> groupIndexer;
     private Indexer<V1RoleBinding> roleBindingIndexer;
     private Indexer<V1Role> roleIndexer;
     private K8sApis k8sApis;
@@ -22,7 +22,7 @@ public class RoleBindingControllerFactory {
     public RoleBindingControllerFactory(
             SharedInformerFactory informerFactory,
             Indexer<V1Namespace> namespaceIndexer,
-            Indexer<V1Beta1ResourceGroup> groupIndexer,
+            Indexer<V1Beta2ResourceGroup> groupIndexer,
             Indexer<V1RoleBinding> roleBindingIndexer,
             Indexer<V1Role> roleIndexer,
             K8sApis k8sApis) {

@@ -10,7 +10,7 @@ import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.KubernetesApiReconcileExceptionHandlingTemplate;
 import io.ten1010.coaster.groupcontroller.controller.cluster.role.ResourceGroupRoleName;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
@@ -43,16 +43,16 @@ public class RoleBindingReconciler implements Reconciler {
 
     private static V1OwnerReference buildOwnerReference(String groupName, String groupUid) {
         V1OwnerReferenceBuilder builder = new V1OwnerReferenceBuilder();
-        return builder.withApiVersion(V1Beta1ResourceGroup.API_VERSION)
+        return builder.withApiVersion(V1Beta2ResourceGroup.API_VERSION)
                 .withBlockOwnerDeletion(true)
                 .withController(true)
-                .withKind(V1Beta1ResourceGroup.KIND)
+                .withKind(V1Beta2ResourceGroup.KIND)
                 .withName(groupName)
                 .withUid(groupUid)
                 .build();
     }
 
-    private static V1OwnerReference buildOwnerReference(V1Beta1ResourceGroup group) {
+    private static V1OwnerReference buildOwnerReference(V1Beta2ResourceGroup group) {
         Objects.requireNonNull(group.getMetadata());
         Objects.requireNonNull(group.getMetadata().getName());
         Objects.requireNonNull(group.getMetadata().getUid());
@@ -61,14 +61,14 @@ public class RoleBindingReconciler implements Reconciler {
 
     private KubernetesApiReconcileExceptionHandlingTemplate template;
     private Indexer<V1Namespace> namespaceIndexer;
-    private Indexer<V1Beta1ResourceGroup> groupIndexer;
+    private Indexer<V1Beta2ResourceGroup> groupIndexer;
     private Indexer<V1RoleBinding> roleBindingIndexer;
     private Indexer<V1Role> roleIndexer;
     private RbacAuthorizationV1Api rbacAuthorizationV1Api;
 
     public RoleBindingReconciler(
             Indexer<V1Namespace> namespaceIndexer,
-            Indexer<V1Beta1ResourceGroup> groupIndexer,
+            Indexer<V1Beta2ResourceGroup> groupIndexer,
             Indexer<V1RoleBinding> roleBindingIndexer,
             Indexer<V1Role> roleIndexer,
             RbacAuthorizationV1Api rbacAuthorizationV1Api) {
@@ -92,7 +92,7 @@ public class RoleBindingReconciler implements Reconciler {
                         return new Result(false);
                     }
                     String groupName = ResourceGroupRoleBindingName.fromRoleBindingName(request.getName()).getResourceGroupName();
-                    V1Beta1ResourceGroup group = this.groupIndexer.getByKey(groupName);
+                    V1Beta2ResourceGroup group = this.groupIndexer.getByKey(groupName);
                     if (group == null) {
                         deleteRoleBindingIfExist(request.getNamespace(), request.getName());
                         return new Result(false);

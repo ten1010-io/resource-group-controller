@@ -1,7 +1,7 @@
 package io.ten1010.coaster.groupcontroller.core;
 
 import io.kubernetes.client.common.KubernetesObject;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1K8sObjectReference;
+import io.ten1010.coaster.groupcontroller.model.V1Beta2K8sObjectReference;
 
 import java.util.Objects;
 
@@ -24,7 +24,7 @@ public final class KeyUtil {
         return buildKey(object.getMetadata().getNamespace(), object.getMetadata().getName());
     }
 
-    public static String getKey(V1Beta1K8sObjectReference reference) {
+    public static String getKey(V1Beta2K8sObjectReference reference) {
         Objects.requireNonNull(reference.getName());
         if (reference.getNamespace() == null) {
             return buildKey(reference.getName());

@@ -1,0 +1,16 @@
+image:
+  pullPolicy: IfNotPresent
+  repository: ten1010io/resource-group-controller
+  tag: ""
+
+app:
+  certificatePath: /etc/resource-group-controller/tls
+  timezone: Asia/Seoul
+  profile: production
+  loggingLevel: info
+  schedulingGroupNodeOnly: true
+
+service:
+  type: ClusterIP
+  targetPort: 8080
+  port: 8080

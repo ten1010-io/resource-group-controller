@@ -13,6 +13,7 @@ public final class IndexNames {
     public static final String BY_NAMESPACE_NAME_TO_STATEFUL_SET_OBJECT = "BY_NAMESPACE_NAME_TO_STATEFUL_SET_OBJECT";
     public static final String BY_NODE_NAME_TO_GROUP_OBJECT = "BY_NODE_NAME_TO_GROUP_OBJECT";
     public static final String BY_DAEMON_SET_KEY_TO_GROUP_OBJECT = "BY_DAEMON_SET_KEY_TO_GROUP_OBJECT";
+    public static final String BY_GROUP_ALLOW_ALL_DAEMON_SET_TO_GROUP_OBJECT = "BY_GROUP_ALLOW_ALL_DAEMON_SET_TO_GROUP_OBJECT";
 
     private IndexNames() {
         throw new UnsupportedOperationException();
