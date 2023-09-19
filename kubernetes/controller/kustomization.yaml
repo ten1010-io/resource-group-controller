@@ -24,5 +24,6 @@ resources:
   - templates/deployment.yaml
   - templates/service.yaml
   - templates/mutating-webhook-configuration.yaml
+  - templates/validating-webhook-configuration.yaml
 patchesStrategicMerge:
   - patches.yaml

@@ -1,17 +1,18 @@
-package io.ten1010.coaster.groupcontroller.mutating;
+package io.ten1010.coaster.groupcontroller.admission;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.*;
 import io.ten1010.coaster.groupcontroller.controller.ControllerSupport;
 import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
-import io.ten1010.coaster.groupcontroller.core.ApiResourceKind;
-import io.ten1010.coaster.groupcontroller.core.ApiResourceKinds;
-import io.ten1010.coaster.groupcontroller.core.K8sObjectUtil;
+import io.ten1010.coaster.groupcontroller.core.*;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
 import lombok.extern.slf4j.Slf4j;
 
+import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.List;
@@ -130,17 +131,29 @@ public class AdmissionReviewService {
         }
     }
 
+    private static V1Beta1ResourceGroup getResourceGroup(JsonNode json) {
+        try {
+            return MAPPER.treeToValue(json, V1Beta1ResourceGroup.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public static ApiResourceKind toApiResourceKind(V1AdmissionReviewRequest.Kind kind) {
         return new ApiResourceKind(kind.getGroup(), kind.getKind());
     }
 
     private Reconciliation reconciliation;
+    private Indexer<V1Node> nodeIndexer;
+    private Indexer<V1Beta1ResourceGroup> groupIndexer;
 
-    public AdmissionReviewService(Reconciliation reconciliation) {
+    public AdmissionReviewService(Reconciliation reconciliation, Indexer<V1Node> nodeIndexer, Indexer<V1Beta1ResourceGroup> groupIndexer) {
         this.reconciliation = reconciliation;
+        this.nodeIndexer = nodeIndexer;
+        this.groupIndexer = groupIndexer;
     }
 
-    public V1AdmissionReviewResponse review(V1AdmissionReviewRequest request) {
+    public V1AdmissionReviewResponse mutate(V1AdmissionReviewRequest request) {
         Objects.requireNonNull(request.getKind());
         if (ApiResourceKinds.CRON_JOB.equals(toApiResourceKind(request.getKind()))) {
             return handleCronJob(request);
@@ -169,6 +182,32 @@ public class AdmissionReviewService {
         throw new IllegalArgumentException(String.format("Unsupported kind [%s]", request.getKind()));
     }
 
+    public V1AdmissionReviewResponse validate(V1AdmissionReviewRequest request) {
+        Objects.requireNonNull(request.getObject());
+        Objects.requireNonNull(request.getResource());
+        V1Beta1ResourceGroup resourceGroup = getResourceGroup(request.getObject());
+        Objects.requireNonNull(resourceGroup.getMetadata());
+        Objects.requireNonNull(resourceGroup.getSpec());
+        List<String> nodes = resourceGroup.getSpec().getNodes();
+        for (String nodeName : nodes) {
+            String nodeKey = KeyUtil.buildKey(nodeName);
+            V1Node node = this.nodeIndexer.getByKey(nodeKey);
+            if (node == null) {
+                return buildRejectResponse(
+                        request.getUid(),
+                        HttpURLConnection.HTTP_BAD_REQUEST,
+                        String.format("Node [%s] not exists", nodeName));
+            }
+            List<V1Beta1ResourceGroup> groups = this.groupIndexer.byIndex(
+                    IndexNames.BY_NODE_NAME_TO_GROUP_OBJECT,
+                    K8sObjectUtil.getName(node));
+            if (groups.size() >= 1) {
+                return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Node [%s] belongs to multiple groups", K8sObjectUtil.getName(node)));
+            }
+        }
+        return buildAllowResponse(request.getUid());
+    }
+
     private V1AdmissionReviewResponse handleCronJob(V1AdmissionReviewRequest request) {
         Objects.requireNonNull(request.getUid());
         Objects.requireNonNull(request.getObject());
@@ -185,7 +224,7 @@ public class AdmissionReviewService {
         if (ControllerSupport.isSupportedControllerOfCronJob(controllerKind)) {
             return buildAllowResponse(request.getUid());
         }
-        return buildRejectResponse(request.getUid(), 400, String.format("Unsupported controller kind [%s] of CronJob", controllerKind));
+        return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Unsupported controller kind [%s] of CronJob", controllerKind));
     }
 
     private V1AdmissionReviewResponse handleDaemonSet(V1AdmissionReviewRequest request) {
@@ -204,7 +243,7 @@ public class AdmissionReviewService {
         if (ControllerSupport.isSupportedControllerOfDaemonSet(controllerKind)) {
             return buildAllowResponse(request.getUid());
         }
-        return buildRejectResponse(request.getUid(), 400, String.format("Unsupported controller kind [%s] of DaemonSet", controllerKind));
+        return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Unsupported controller kind [%s] of DaemonSet", controllerKind));
     }
 
     private V1AdmissionReviewResponse handleDeployment(V1AdmissionReviewRequest request) {
@@ -223,7 +262,7 @@ public class AdmissionReviewService {
         if (ControllerSupport.isSupportedControllerOfDeployment(controllerKind)) {
             return buildAllowResponse(request.getUid());
         }
-        return buildRejectResponse(request.getUid(), 400, String.format("Unsupported controller kind [%s] of Deployment", controllerKind));
+        return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Unsupported controller kind [%s] of Deployment", controllerKind));
     }
 
     private V1AdmissionReviewResponse handleJob(V1AdmissionReviewRequest request) {
@@ -242,7 +281,7 @@ public class AdmissionReviewService {
         if (ControllerSupport.isSupportedControllerOfJob(controllerKind)) {
             return buildAllowResponse(request.getUid());
         }
-        return buildRejectResponse(request.getUid(), 400, String.format("Unsupported controller kind [%s] of Job", controllerKind));
+        return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Unsupported controller kind [%s] of Job", controllerKind));
     }
 
     private V1AdmissionReviewResponse handlePod(V1AdmissionReviewRequest request) {
@@ -261,7 +300,7 @@ public class AdmissionReviewService {
         if (ControllerSupport.isSupportedControllerOfPod(controllerKind)) {
             return buildAllowResponse(request.getUid());
         }
-        return buildRejectResponse(request.getUid(), 400, String.format("Unsupported controller kind [%s] of Pod", controllerKind));
+        return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Unsupported controller kind [%s] of Pod", controllerKind));
     }
 
     private V1AdmissionReviewResponse handleReplicaSet(V1AdmissionReviewRequest request) {
@@ -280,7 +319,7 @@ public class AdmissionReviewService {
         if (ControllerSupport.isSupportedControllerOfReplicaSet(controllerKind)) {
             return buildAllowResponse(request.getUid());
         }
-        return buildRejectResponse(request.getUid(), 400, String.format("Unsupported controller kind [%s] of ReplicaSet", controllerKind));
+        return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Unsupported controller kind [%s] of ReplicaSet", controllerKind));
     }
 
     private V1AdmissionReviewResponse handleReplicationController(V1AdmissionReviewRequest request) {
@@ -299,7 +338,7 @@ public class AdmissionReviewService {
         if (ControllerSupport.isSupportedControllerOfReplicationController(controllerKind)) {
             return buildAllowResponse(request.getUid());
         }
-        return buildRejectResponse(request.getUid(), 400, String.format("Unsupported controller kind [%s] of ReplicationController", controllerKind));
+        return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Unsupported controller kind [%s] of ReplicationController", controllerKind));
     }
 
     private V1AdmissionReviewResponse handleStatefulSet(V1AdmissionReviewRequest request) {
@@ -318,7 +357,7 @@ public class AdmissionReviewService {
         if (ControllerSupport.isSupportedControllerOfStatefulSet(controllerKind)) {
             return buildAllowResponse(request.getUid());
         }
-        return buildRejectResponse(request.getUid(), 400, String.format("Unsupported controller kind [%s] of StatefulSet", controllerKind));
+        return buildRejectResponse(request.getUid(), HttpURLConnection.HTTP_BAD_REQUEST, String.format("Unsupported controller kind [%s] of StatefulSet", controllerKind));
     }
 
 }
