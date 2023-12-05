@@ -15,59 +15,64 @@ import java.util.stream.Stream;
 public class Reconciliation {
 
     private static Optional<V1Affinity> reconcileAffinity(@Nullable V1Affinity existingAffinity, List<V1Beta1ResourceGroup> groups) {
-        List<V1NodeSelectorTerm> terms = new ArrayList<>();
         if (existingAffinity == null) {
-            if (groups.isEmpty()) {
+            List<V1NodeSelectorRequirement> reconciledExpressions = reconcileMatchExpressions(new ArrayList<>(), groups);
+            if (reconciledExpressions == null) {
                 return Optional.empty();
             }
-            terms.addAll(buildResourceGroupExclusiveNodeSelectorTerms(groups));
             return Optional.of(new V1AffinityBuilder()
                     .withNewNodeAffinity()
                     .withNewRequiredDuringSchedulingIgnoredDuringExecution()
-                    .withNodeSelectorTerms(terms)
+                    .withNodeSelectorTerms(new V1NodeSelectorTermBuilder()
+                            .withMatchExpressions(reconciledExpressions)
+                            .build())
                     .endRequiredDuringSchedulingIgnoredDuringExecution()
                     .endNodeAffinity()
                     .build());
         }
-        V1Affinity clone = new V1AffinityBuilder(existingAffinity).build();
-        terms.addAll(extractNonResourceGroupExclusiveNodeSelectorTerms(clone));
-        if (!groups.isEmpty()) {
-            if (terms.isEmpty()) {
-                terms.addAll(buildResourceGroupExclusiveNodeSelectorTerms(groups));
-            } else {
-                terms.stream()
-                        .findFirst().get().getMatchExpressions()
-                        .add(buildResourceGroupExclusiveNodeSelectorRequirement(groups));
+        V1AffinityBuilder builder = new V1AffinityBuilder(existingAffinity);
+        if (existingAffinity.getNodeAffinity() == null) {
+            List<V1NodeSelectorRequirement> reconciledExpressions = reconcileMatchExpressions(new ArrayList<>(), groups);
+            if (reconciledExpressions == null) {
+                return Optional.of(builder.build());
             }
-        }
-        if (terms.isEmpty()) {
-            if (clone.getNodeAffinity() == null) {
-                return Optional.of(clone);
-            }
-            if (clone.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution() == null) {
-                return Optional.of(clone);
-            }
-            clone.getNodeAffinity().setRequiredDuringSchedulingIgnoredDuringExecution(null);
-            return Optional.of(clone);
-        }
-        if (clone.getNodeAffinity() == null) {
-            V1NodeAffinity nodeAffinity = new V1NodeAffinityBuilder()
+            return Optional.of(builder
+                    .withNewNodeAffinity()
                     .withNewRequiredDuringSchedulingIgnoredDuringExecution()
-                    .withNodeSelectorTerms(terms)
+                    .withNodeSelectorTerms(new V1NodeSelectorTermBuilder()
+                            .withMatchExpressions(reconciledExpressions)
+                            .build())
                     .endRequiredDuringSchedulingIgnoredDuringExecution()
-                    .build();
-            clone.setNodeAffinity(nodeAffinity);
-            return Optional.of(clone);
+                    .endNodeAffinity()
+                    .build());
         }
-        if (clone.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution() == null) {
-            V1NodeSelector selector = new V1NodeSelectorBuilder()
-                    .withNodeSelectorTerms(terms)
-                    .build();
-            clone.getNodeAffinity().setRequiredDuringSchedulingIgnoredDuringExecution(selector);
-            return Optional.of(clone);
+        if (existingAffinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution() == null) {
+            List<V1NodeSelectorRequirement> reconciledExpressions = reconcileMatchExpressions(new ArrayList<>(), groups);
+            if (reconciledExpressions == null) {
+                return Optional.of(builder.build());
+            }
+            return Optional.of(new V1AffinityBuilder(existingAffinity)
+                    .editNodeAffinity()
+                    .withNewRequiredDuringSchedulingIgnoredDuringExecution()
+                    .withNodeSelectorTerms(new V1NodeSelectorTermBuilder()
+                            .withMatchExpressions(reconciledExpressions)
+                            .build())
+                    .endRequiredDuringSchedulingIgnoredDuringExecution()
+                    .endNodeAffinity()
+                    .build());
         }
-        clone.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution().setNodeSelectorTerms(terms);
-        return Optional.of(clone);
+        List<V1NodeSelectorTerm> reconciledTerms = existingAffinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution().getNodeSelectorTerms().stream()
+                .map(term -> new V1NodeSelectorTermBuilder(term)
+                        .withMatchExpressions(reconcileMatchExpressions(term.getMatchExpressions(), groups))
+                        .build())
+                .collect(Collectors.toList());
+        return Optional.of(builder
+                .editNodeAffinity()
+                .editRequiredDuringSchedulingIgnoredDuringExecution()
+                .withNodeSelectorTerms(reconciledTerms)
+                .endRequiredDuringSchedulingIgnoredDuringExecution()
+                .endNodeAffinity()
+                .build());
     }
 
     private static List<V1Toleration> reconcileTolerations(List<V1Toleration> existingTolerations, List<V1Beta1ResourceGroup> groups) {
@@ -123,38 +128,32 @@ public class Reconciliation {
         return (toleration.getKey() == null && toleration.getEffect().equals(Taints.EFFECT_NO_SCHEDULE));
     }
 
-    private static List<V1NodeSelectorTerm> extractNonResourceGroupExclusiveNodeSelectorTerms(V1Affinity affinity) {
-        if (affinity.getNodeAffinity() == null) {
-            return List.of();
+    @Nullable
+    private static List<V1NodeSelectorRequirement> reconcileMatchExpressions(@Nullable List<V1NodeSelectorRequirement> existingExpressions, List<V1Beta1ResourceGroup> groups) {
+        if (existingExpressions == null) {
+            List<V1NodeSelectorRequirement> expressions = buildResourceGroupExclusiveMatchExpressions(groups);
+            if (expressions.isEmpty()) {
+                return null;
+            }
+            return expressions;
         }
-        if (affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution() == null) {
-            return List.of();
+        List<V1NodeSelectorRequirement> expressions = extractNonResourceGroupExclusiveMatchExpressions(existingExpressions);
+        expressions.addAll(buildResourceGroupExclusiveMatchExpressions(groups));
+        if (expressions.isEmpty()) {
+            return null;
         }
-        return affinity.getNodeAffinity()
-                .getRequiredDuringSchedulingIgnoredDuringExecution()
-                .getNodeSelectorTerms()
+        return expressions;
+    }
+
+    private static List<V1NodeSelectorRequirement> extractNonResourceGroupExclusiveMatchExpressions(List<V1NodeSelectorRequirement> existingExpressions) {
+        return existingExpressions
                 .stream()
-                .map(Reconciliation::extractNonResourceGroupExclusiveNodeSelectorRequirements)
+                .filter(exp -> !isResourceGroupExclusiveNodeSelectorRequirement(exp))
                 .collect(Collectors.toList());
     }
 
-    private static V1NodeSelectorTerm extractNonResourceGroupExclusiveNodeSelectorRequirements(V1NodeSelectorTerm term) {
-        List<V1NodeSelectorRequirement> nonExclusiveRequirements = term.getMatchExpressions().stream()
-                .filter(req -> !isResourceGroupExclusiveNodeSelectorRequirement(req))
-                .collect(Collectors.toList());
-        return new V1NodeSelectorTerm().matchExpressions(nonExclusiveRequirements);
-    }
-
-    private static List<V1NodeSelectorTerm> buildResourceGroupExclusiveNodeSelectorTerms(List<V1Beta1ResourceGroup> groups) {
-        V1NodeSelectorRequirement requirements = buildResourceGroupExclusiveNodeSelectorRequirement(groups);
-        V1NodeSelectorTerm term = new V1NodeSelectorTermBuilder()
-                .withMatchExpressions(requirements)
-                .build();
-        return List.of(term);
-    }
-
-    private static V1NodeSelectorRequirement buildResourceGroupExclusiveNodeSelectorRequirement(List<V1Beta1ResourceGroup> groups) {
-        V1NodeSelectorRequirement requirement = new V1NodeSelectorRequirementBuilder()
+    private static List<V1NodeSelectorRequirement> buildResourceGroupExclusiveMatchExpressions(List<V1Beta1ResourceGroup> groups) {
+        V1NodeSelectorRequirement expression = new V1NodeSelectorRequirementBuilder()
                 .withKey(Labels.KEY_RESOURCE_GROUP_EXCLUSIVE)
                 .withOperator("In")
                 .withValues(groups.stream()
@@ -162,7 +161,7 @@ public class Reconciliation {
                         .distinct()
                         .collect(Collectors.toList()))
                 .build();
-        return requirement;
+        return List.of(expression);
     }
 
     private static boolean isResourceGroupExclusiveNodeSelectorRequirement(V1NodeSelectorRequirement requirement) {
