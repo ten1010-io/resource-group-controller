@@ -153,6 +153,9 @@ public class Reconciliation {
     }
 
     private static List<V1NodeSelectorRequirement> buildResourceGroupExclusiveMatchExpressions(List<V1Beta1ResourceGroup> groups) {
+        if (groups.isEmpty()) {
+            return new ArrayList<>();
+        }
         V1NodeSelectorRequirement expression = new V1NodeSelectorRequirementBuilder()
                 .withKey(Labels.KEY_RESOURCE_GROUP_EXCLUSIVE)
                 .withOperator("In")
