@@ -7,6 +7,7 @@ import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
 import org.springframework.lang.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -87,16 +88,24 @@ public class Reconciliation {
         return tolerations.stream()
                 .map(e -> {
                     if (isAllKeyAllEffectToleration(e)) {
-                        return new V1TolerationBuilder()
-                                .withEffect(Taints.EFFECT_NO_EXECUTE)
-                                .withKey(null)
-                                .withOperator(e.getOperator())
-                                .withTolerationSeconds(e.getTolerationSeconds())
-                                .withValue(e.getValue())
-                                .build();
+                        return List.of(new V1TolerationBuilder()
+                                        .withEffect(Taints.EFFECT_NO_EXECUTE)
+                                        .withKey(null)
+                                        .withOperator(e.getOperator())
+                                        .withTolerationSeconds(e.getTolerationSeconds())
+                                        .withValue(e.getValue())
+                                        .build(),
+                                new V1TolerationBuilder()
+                                        .withEffect(Taints.EFFECT_NO_SCHEDULE)
+                                        .withKey("node-role.kubernetes.io/control-plane")
+                                        .withOperator("Exists")
+                                        .withTolerationSeconds(null)
+                                        .withValue(null)
+                                        .build());
                     }
-                    return e;
+                    return List.of(e);
                 })
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
