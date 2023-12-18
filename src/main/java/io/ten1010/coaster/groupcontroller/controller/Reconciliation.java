@@ -113,16 +113,24 @@ public class Reconciliation {
         return tolerations.stream()
                 .map(e -> {
                     if (isAllKeyNoScheduleEffectToleration(e)) {
-                        return new V1TolerationBuilder()
-                                .withEffect(Taints.EFFECT_NO_SCHEDULE)
-                                .withKey("node-role.kubernetes.io/control-plane")
-                                .withOperator("Exists")
-                                .withTolerationSeconds(null)
-                                .withValue(null)
-                                .build();
+                        return List.of(new V1TolerationBuilder()
+                                        .withEffect(Taints.EFFECT_NO_SCHEDULE)
+                                        .withKey("node-role.kubernetes.io/control-plane")
+                                        .withOperator("Exists")
+                                        .withTolerationSeconds(null)
+                                        .withValue(null)
+                                        .build(),
+                                new V1TolerationBuilder()
+                                        .withEffect(Taints.EFFECT_NO_SCHEDULE)
+                                        .withKey("node.kubernetes.io/not-ready")
+                                        .withOperator("Exists")
+                                        .withTolerationSeconds(null)
+                                        .withValue(null)
+                                        .build());
                     }
-                    return e;
+                    return List.of(e);
                 })
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
