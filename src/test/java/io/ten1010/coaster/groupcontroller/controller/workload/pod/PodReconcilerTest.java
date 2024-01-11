@@ -197,6 +197,72 @@ class PodReconcilerTest {
     }
 
     @Test
+    void given_pod_has_toleration_which_has_no_key_and_effect_then_should_delete_pod() {
+        V1Pod pod1 = new V1Pod();
+        V1ObjectMeta podMeta1 = new V1ObjectMeta();
+        podMeta1.setNamespace("ns1");
+        podMeta1.setName("pod1");
+        pod1.setMetadata(podMeta1);
+        V1PodSpec podSpec1 = new V1PodSpec();
+        V1TolerationBuilder tolerationBuilder = new V1TolerationBuilder()
+                .withValue("value1")
+                .withOperator("Equal");
+        podSpec1.setTolerations(List.of(tolerationBuilder.build()));
+        pod1.setSpec(podSpec1);
+
+        Mockito.doReturn(pod1).when(this.podIndexer).getByKey(KeyUtil.buildKey("ns1", "pod1"));
+        PodReconciler podReconciler = new PodReconciler(this.podIndexer, this.reconciliation, this.coreV1Api);
+        podReconciler.reconcile(new Request("ns1", "pod1"));
+        try {
+            Mockito.verify(this.coreV1Api).deleteNamespacedPod(
+                    Mockito.eq("pod1"),
+                    Mockito.eq("ns1"),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null));
+        } catch (ApiException e) {
+            Assertions.fail();
+        }
+        Mockito.verifyNoMoreInteractions(this.coreV1Api);
+    }
+
+    @Test
+    void given_pod_has_toleration_which_its_effect_is_for_no_schedule_then_should_delete_pod() {
+        V1Pod pod1 = new V1Pod();
+        V1ObjectMeta podMeta1 = new V1ObjectMeta();
+        podMeta1.setNamespace("ns1");
+        podMeta1.setName("pod1");
+        pod1.setMetadata(podMeta1);
+        V1PodSpec podSpec1 = new V1PodSpec();
+        V1TolerationBuilder tolerationBuilder = new V1TolerationBuilder()
+                .withValue("value1")
+                .withOperator("Equal");
+        podSpec1.setTolerations(List.of(tolerationBuilder.withEffect("NoSchedule").build()));
+        pod1.setSpec(podSpec1);
+
+        Mockito.doReturn(pod1).when(this.podIndexer).getByKey(KeyUtil.buildKey("ns1", "pod1"));
+        PodReconciler podReconciler = new PodReconciler(this.podIndexer, this.reconciliation, this.coreV1Api);
+        podReconciler.reconcile(new Request("ns1", "pod1"));
+        try {
+            Mockito.verify(this.coreV1Api).deleteNamespacedPod(
+                    Mockito.eq("pod1"),
+                    Mockito.eq("ns1"),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null),
+                    Mockito.eq(null));
+        } catch (ApiException e) {
+            Assertions.fail();
+        }
+        Mockito.verifyNoMoreInteractions(this.coreV1Api);
+    }
+
+    @Test
     void given_pod_does_not_have_any_affinities_then_should_delete_pod() {
         V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();
         V1ObjectMeta meta1 = new V1ObjectMeta();
