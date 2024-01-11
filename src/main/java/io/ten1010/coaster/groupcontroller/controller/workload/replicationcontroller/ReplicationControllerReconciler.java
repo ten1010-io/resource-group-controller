@@ -97,6 +97,7 @@ public class ReplicationControllerReconciler implements Reconciler {
                 .editTemplate()
                 .editSpec()
                 .withAffinity(affinity)
+                .withTolerations(tolerations)
                 .endSpec()
                 .endTemplate()
                 .endSpec()
