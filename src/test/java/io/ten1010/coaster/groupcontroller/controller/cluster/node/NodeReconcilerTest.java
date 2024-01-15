@@ -95,7 +95,6 @@ class NodeReconcilerTest {
         }
     }
 
-
     @Test
     void should_do_nothing_the_given_labels_and_taints_of_node_are_equal_with_resource_groups() {
         V1Beta1ResourceGroup group1 = new V1Beta1ResourceGroup();

@@ -9,6 +9,7 @@ import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
+import io.ten1010.coaster.groupcontroller.configuration.property.SchedulingProperties;
 import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
 import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
@@ -27,11 +28,13 @@ class AdmissionReviewServiceTest {
 
     Indexer<V1Beta1ResourceGroup> groupIndexer;
     Reconciliation reconciliation;
+    SchedulingProperties schedulingProperties;
 
     @BeforeEach
     void setUp() {
         this.groupIndexer = Mockito.mock(Indexer.class);
-        this.reconciliation = new Reconciliation(this.groupIndexer);
+        this.schedulingProperties = Mockito.mock(SchedulingProperties.class);
+        this.reconciliation = new Reconciliation(this.groupIndexer, this.schedulingProperties);
     }
 
     @Test

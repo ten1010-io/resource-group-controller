@@ -5,12 +5,13 @@ import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.models.*;
+import io.ten1010.coaster.groupcontroller.configuration.property.SchedulingProperties;
 import io.ten1010.coaster.groupcontroller.controller.Reconciliation;
 import io.ten1010.coaster.groupcontroller.core.IndexNames;
 import io.ten1010.coaster.groupcontroller.core.KeyUtil;
 import io.ten1010.coaster.groupcontroller.core.Taints;
-import io.ten1010.coaster.groupcontroller.model.V1Beta1K8sObjectReference;
 import io.ten1010.coaster.groupcontroller.model.V1Beta1DaemonSet;
+import io.ten1010.coaster.groupcontroller.model.V1Beta1K8sObjectReference;
 import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroup;
 import io.ten1010.coaster.groupcontroller.model.V1Beta1ResourceGroupSpec;
 import org.junit.jupiter.api.Assertions;
@@ -30,11 +31,13 @@ class DaemonSetReconcilerTest {
     Reconciliation reconciliation;
     Indexer<V1DaemonSet> daemonSetIndexer;
     AppsV1Api appsV1Api;
+    SchedulingProperties schedulingProperties;
 
     @BeforeEach
     void setUp() {
         this.groupIndexer = Mockito.mock(Indexer.class);
-        this.reconciliation = new Reconciliation(this.groupIndexer);
+        this.schedulingProperties = Mockito.mock(SchedulingProperties.class);
+        this.reconciliation = new Reconciliation(this.groupIndexer, this.schedulingProperties);
         this.daemonSetIndexer = Mockito.mock(Indexer.class);
         this.appsV1Api = Mockito.mock(AppsV1Api.class);
     }
