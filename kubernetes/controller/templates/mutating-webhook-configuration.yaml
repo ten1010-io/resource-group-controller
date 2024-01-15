@@ -10,7 +10,7 @@ webhooks:
       service:
         namespace: resource-group-controller
         name: resource-group-controller
-        path: /admissionreviews
+        path: /mutate
         port: 8080
     failurePolicy: Ignore
     matchPolicy: Equivalent

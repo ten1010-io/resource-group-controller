@@ -1,4 +1,4 @@
-package io.ten1010.coaster.groupcontroller.mutating;
+package io.ten1010.coaster.groupcontroller.admission;
 
 import io.kubernetes.client.common.KubernetesType;
 import lombok.*;
