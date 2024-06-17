@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>io.ten1010.coaster</groupId>
+    <groupId>io.ten1010</groupId>
     <artifactId>resource-group-controller</artifactId>
     <!-- Files that are affected by version
       - image versions of some kubernetes template
