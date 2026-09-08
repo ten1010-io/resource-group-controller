@@ -9,16 +9,21 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1LocalObjectReference;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeSelectorTerm;
+import io.kubernetes.client.openapi.models.V1OwnerReference;
 import io.kubernetes.client.openapi.models.V1PodTemplateSpec;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.aipub.projectcontroller.controller.AbstractReconciler;
 import io.ten1010.aipub.projectcontroller.controller.ReconcileRequestLogMessageFactory;
 import io.ten1010.aipub.projectcontroller.controller.RequestHelper;
+import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectType;
+import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectTypeKey;
 import io.ten1010.aipub.projectcontroller.domain.k8s.KeyResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.ReconciliationService;
 import io.ten1010.aipub.projectcontroller.domain.k8s.dto.V1alpha1Project;
 import io.ten1010.aipub.projectcontroller.domain.k8s.util.K8sObjectUtils;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -26,6 +31,8 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
 
   private final KeyResolver keyResolver;
   private final ReconciliationService reconciliationService;
+  private final SharedInformerFactory sharedInformerFactory;
+  private final Map<K8sObjectTypeKey, K8sObjectType<?>> supportedTypes;
   private final Class<? extends KubernetesObject> controllerObjectClass;
   private final Indexer<? extends KubernetesObject> controllerIndexer;
   private final Indexer<V1alpha1Project> projectIndexer;
@@ -36,6 +43,7 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
   public WorkloadControllerReconciler(
       SharedInformerFactory sharedInformerFactory,
       ReconciliationService reconciliationService,
+      List<? extends K8sObjectType<?>> supportedTypes,
       Class<? extends KubernetesObject> controllerObjectClass,
       Function<KubernetesObject, V1PodTemplateSpec> podTemplateSpecResolver,
       ControllerObjectReconciler controllerObjectReconciler,
@@ -45,6 +53,11 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
     setLogMessageFactory(logMessageFactory);
     this.keyResolver = new KeyResolver();
     this.reconciliationService = reconciliationService;
+    this.sharedInformerFactory = sharedInformerFactory;
+    this.supportedTypes = new HashMap<>();
+    for (K8sObjectType<?> type : supportedTypes) {
+      this.supportedTypes.put(type.typeKey(), type);
+    }
     this.controllerIndexer = sharedInformerFactory
         .getExistingSharedIndexInformer(controllerObjectClass)
         .getIndexer();
@@ -66,7 +79,7 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
       return new Result(false);
     }
     KubernetesObject controller = controllerOpt.get();
-    if (K8sObjectUtils.findControllerOwnerReference(controller).isPresent()) {
+    if (isOwnedBySupportedControllerType(controller)) {
       return new Result(false);
     }
 
@@ -100,6 +113,30 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
 
     return this.controllerObjectReconciler.reconcileController(controller, reconciledTolerations,
         reconciledSelectorTerms, reconciledImagePullSecrets);
+  }
+
+  /**
+   * controller ownerReference의 {@code (apiVersion, kind)}가 지원 워크로드 타입이고 그 타입의
+   * informer가 등록돼 있으면 true. 이때는 root 워크로드가 따로 reconcile되므로 여기서는 건너뛴다.
+   *
+   * <p>미지원 kind(임의 CR이 소유한 워크로드)나 informer가 등록되지 않은 타입이 소유한 워크로드는
+   * 아무도 reconcile하지 않는다. 그러므로 건너뛰지 않고 자기 자신을 root로 보아 계속 진행한다.
+   * 판정 기준({@link K8sObjectTypeKey} 일치 + informer 등록 여부)은
+   * {@link RootWorkloadControllerResolver}의 root 정의와 동일해야 한다.
+   */
+  private boolean isOwnedBySupportedControllerType(KubernetesObject controller) {
+    Optional<V1OwnerReference> ownerReferenceOpt = K8sObjectUtils.findControllerOwnerReference(
+        controller);
+    if (ownerReferenceOpt.isEmpty()) {
+      return false;
+    }
+    V1OwnerReference ownerReference = ownerReferenceOpt.get();
+    K8sObjectType<?> ownerType = this.supportedTypes.get(
+        new K8sObjectTypeKey(ownerReference.getApiVersion(), ownerReference.getKind()));
+    if (ownerType == null) {
+      return false;
+    }
+    return this.sharedInformerFactory.getExistingSharedIndexInformer(ownerType.objClass()) != null;
   }
 
   private String createRequestDescription(Request request) {

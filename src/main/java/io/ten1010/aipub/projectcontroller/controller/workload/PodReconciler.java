@@ -64,9 +64,8 @@ public class PodReconciler extends AbstractReconciler {
     }
     V1Pod pod = podOpt.get();
 
-    // allowlist 네임스페이스의 파드는 project-managed 노드에 있어도 절대 삭제하지 않는다. owner
-    // kind가 등록된 워크로드 타입이 아닐 때 파드를 삭제하는 UnsupportedControllerException 분기보다
-    // 먼저 검사해야 한다.
+    // allowlist 네임스페이스의 파드는 project-managed 노드에 있어도 절대 삭제하지 않는다.
+    // strict 격리 삭제 분기(processCaseThatProjectManagedNode)보다 먼저 검사해야 한다.
     if (this.namespaceAllowlistResolver.isAllowlisted(K8sObjectUtils.getNamespace(pod))) {
       return new Result(false);
     }
@@ -101,13 +100,9 @@ public class PodReconciler extends AbstractReconciler {
       return new Result(false);
     }
 
-    List<V1Node> allowedProjectNodeObjects;
-    try {
-      allowedProjectNodeObjects = this.podNodesResolver.getNodes(pod);
-    } catch (UnsupportedControllerException e) {
-      deletePod(pod);
-      return new Result(false);
-    }
+    // 노드 해석에 실패해도 파드를 삭제하지 않는다. 지원 워크로드가 소유하지 않은 파드(임의 CR
+    // 소유)는 가장 가까운 지원 워크로드나 네임스페이스의 Project를 기준으로 해석된다.
+    List<V1Node> allowedProjectNodeObjects = this.podNodesResolver.getNodes(pod);
 
     Set<String> allowedProjectNodes = allowedProjectNodeObjects.stream()
         .map(K8sObjectUtils::getName)

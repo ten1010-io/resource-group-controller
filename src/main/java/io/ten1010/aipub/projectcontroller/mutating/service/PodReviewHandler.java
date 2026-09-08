@@ -10,7 +10,6 @@ import io.kubernetes.client.openapi.models.V1NodeSelectorTerm;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.aipub.projectcontroller.controller.workload.PodNodesResolver;
-import io.ten1010.aipub.projectcontroller.controller.workload.UnsupportedControllerException;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectTypeConstants;
 import io.ten1010.aipub.projectcontroller.domain.k8s.KeyResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.ReconciliationService;
@@ -68,12 +67,7 @@ public class PodReviewHandler extends AbstractReviewHandler<V1Pod> {
       return;
     }
 
-    List<V1Node> allowedProjectNodeObjects;
-    try {
-      allowedProjectNodeObjects = this.podNodesResolver.getNodes(pod);
-    } catch (UnsupportedControllerException e) {
-      allowedProjectNodeObjects = this.podNodesResolver._getNodes(pod); // todo
-    }
+    List<V1Node> allowedProjectNodeObjects = this.podNodesResolver.getNodes(pod);
     V1alpha1Project project = this.projectIndexer.getByKey(
         new KeyResolver().resolveKey(K8sObjectUtils.getNamespace(pod)));
 

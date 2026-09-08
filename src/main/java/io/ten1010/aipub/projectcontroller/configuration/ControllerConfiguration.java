@@ -67,7 +67,10 @@ public class ControllerConfiguration {
     ControllerManagerBuilder builder = ControllerBuilder.controllerManagerBuilder(
         sharedInformerFactory);
     controllers.forEach(builder::addController);
-    workloadControllerFactories.forEach(f -> builder.addController(f.createController()));
+    List<? extends K8sObjectType<?>> supportedTypes = resolveSupportedWorkloadTypes(
+        workloadControllerFactories);
+    workloadControllerFactories.forEach(
+        f -> builder.addController(f.createController(supportedTypes)));
     ControllerManager controllerManager = builder.build();
 
     // 모든 컨트롤러 빌드가 끝나 개인 Role 워크큐가 매니저에 등록된 뒤에
@@ -247,14 +250,24 @@ public class ControllerConfiguration {
         .createController();
   }
 
+  /**
+   * reconcile 대상 워크로드 타입 전체. root 워크로드 판정 기준이므로 이 값을 쓰는 두 지점
+   * (워크로드 리컨실러의 owner kind 대조와 {@link RootWorkloadControllerResolver})이 반드시 같은
+   * 값을 봐야 한다. 각자 따로 수집하면 root 정의가 갈라진다.
+   */
+  private static List<? extends K8sObjectType<?>> resolveSupportedWorkloadTypes(
+      List<WorkloadControllerFactory<?>> workloadControllerFactories) {
+    return workloadControllerFactories.stream()
+        .map(WorkloadControllerFactory::getObjectType)
+        .toList();
+  }
+
   @Bean
   public RootWorkloadControllerResolver rootControllerResolver(
       SharedInformerFactory sharedInformerFactory,
       List<WorkloadControllerFactory<?>> workloadControllerFactories) {
-    List<? extends K8sObjectType<?>> supportedTypes = workloadControllerFactories.stream()
-        .map(WorkloadControllerFactory::getObjectType)
-        .toList();
-    return new RootWorkloadControllerResolver(supportedTypes, sharedInformerFactory);
+    return new RootWorkloadControllerResolver(
+        resolveSupportedWorkloadTypes(workloadControllerFactories), sharedInformerFactory);
   }
 
   @Bean

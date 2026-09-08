@@ -17,6 +17,7 @@ import io.ten1010.aipub.projectcontroller.controller.watch.OnUpdateFilterFactory
 import io.ten1010.aipub.projectcontroller.controller.watch.RequestBuilderFactory;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectType;
 import io.ten1010.aipub.projectcontroller.domain.k8s.ReconciliationService;
+import java.util.List;
 import java.util.function.Function;
 
 public abstract class WorkloadControllerFactory<T extends KubernetesObject> implements
@@ -38,14 +39,32 @@ public abstract class WorkloadControllerFactory<T extends KubernetesObject> impl
     this.requestBuilderFactory = new RequestBuilderFactory(sharedInformerFactory);
   }
 
+  /**
+   * 워크로드 컨트롤러는 owner kind 대조에 쓸 지원 타입 목록이 필요하므로 인자 없는 생성은
+   * 지원하지 않는다. {@link #createController(List)}를 쓸 것.
+   *
+   * <p>지원 타입 목록은 워크로드 팩토리 빈들 자신에서 수집되므로(각 팩토리의
+   * {@link #getObjectType()}) 팩토리 생성자로는 주입할 수 없다. 팩토리 전체 목록이 모인 지점
+   * (ControllerConfiguration의 controllerManager 빈)에서 인자로 넘긴다.
+   */
   @Override
   public Controller createController() {
+    throw new UnsupportedOperationException(
+        "WorkloadControllerFactory requires supported types; use createController(List) instead");
+  }
+
+  /**
+   * @param supportedTypes reconcile 대상 워크로드 타입 전체. 워크로드의 controller
+   *     ownerReference가 이 목록에 있는 타입을 가리키면 root 워크로드가 따로 reconcile되므로
+   *     건너뛴다. {@link RootWorkloadControllerResolver}에 넘기는 것과 같은 값이어야 한다
+   */
+  public Controller createController(List<? extends K8sObjectType<?>> supportedTypes) {
     configureControllerName();
     configureReadyFunc();
     configureWatch();
     configureNamespaceAllowlistWatch();
     this.builder.withWorkerCount(1);
-    this.builder.withReconciler(createReconciler());
+    this.builder.withReconciler(createReconciler(supportedTypes));
 
     return this.builder.build();
   }
@@ -83,10 +102,11 @@ public abstract class WorkloadControllerFactory<T extends KubernetesObject> impl
     return watch;
   }
 
-  private Reconciler createReconciler() {
+  private Reconciler createReconciler(List<? extends K8sObjectType<?>> supportedTypes) {
     return new WorkloadControllerReconciler(
         this.sharedInformerFactory,
         this.reconciliationService,
+        supportedTypes,
         getObjectType().objClass(),
         getPodTemplateSpecResolver(),
         getObjectReconciler(),

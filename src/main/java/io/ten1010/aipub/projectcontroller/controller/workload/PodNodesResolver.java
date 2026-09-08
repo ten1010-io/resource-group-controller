@@ -36,6 +36,11 @@ public class PodNodesResolver {
     this.boundObjectResolver = new BoundObjectResolver(sharedInformerFactory);
   }
 
+  /**
+   * 파드가 스케줄될 수 있는 project-managed 노드를 해석한다. 가장 가까운 지원 워크로드 root가
+   * 있으면 그 타입의 resolver를 따르고(DaemonSet은 NodeGroup daemonSetPolicy까지 반영),
+   * root가 없으면 파드가 속한 네임스페이스의 Project에 바인딩된 노드를 쓴다.
+   */
   public List<V1Node> getNodes(V1Pod pod) {
     Optional<KubernetesObject> rootControllerOpt = this.rootWorkloadControllerResolver.getRootController(
         pod);
@@ -55,21 +60,5 @@ public class PodNodesResolver {
 
     return NodeUtils.getProjectManagedNodes(allBoundNodes);
   }
-
-  //todo --
-  public List<V1Node> _getNodes(V1Pod pod) {
-    String projName = this.namespaceNameResolver.resolveProjectName(
-        K8sObjectUtils.getNamespace(pod));
-    String projKey = this.keyResolver.resolveKey(projName);
-    V1alpha1Project project = this.projectIndexer.getByKey(projKey);
-    if (project == null) {
-      return List.of();
-    }
-
-    List<V1Node> allBoundNodes = this.boundObjectResolver.getAllBoundNodes(project);
-
-    return NodeUtils.getProjectManagedNodes(allBoundNodes);
-  }
-  //todo --
 
 }
