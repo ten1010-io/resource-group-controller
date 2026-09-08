@@ -95,3 +95,83 @@ FAIL 사유는 없다. 코드로 해결 불가한 항목만 남는다.
   노드 집합이 동일하다.
 - 테스트 커버리지 공백 3건: 웹훅 레벨 owner-미해석 · lenient project-managed 노드 ·
   `processCaseThatNotProjectManagedNode` 삭제 분기.
+
+---
+
+# 델타 검증 — 범위 축소 + 배선 테스트
+
+1차 구현(`ffc9204`) PASS 이후 추가된 두 변경에 대한 검증. 종합 판정 **PASS**. 단 D 항목에서
+**실제 빈틈을 찾아 닫았다.**
+
+## 7. 빌드 / 테스트
+
+`./gradlew clean build` → **BUILD SUCCESSFUL**, **265건 / 실패 0 / 에러 0**. 메인 코드는 검증 과정에서
+손대지 않았다(`git diff --numstat ffc9204 -- src/main/java` 검증 전후 동일).
+
+## 8. 축소 정확성 (A) — 전부 PASS
+
+| # | 항목 | 근거 |
+|---|---|---|
+| A1 | 네 분기 전부 코드 확인 + 각각 대응 테스트 존재 | ownerRef 없음→진행 / 지원+informer→스킵 / 미지원·informer미등록+`true`→진행 / 미지원+`false`→스킵 |
+| A2 | 기본값 `false`, 오버라이드는 `DaemonSetWorkloadControllerFactory` **한 곳뿐**(grep 전수) | `typeKey()` 고정이 작동함을 뮤테이션으로 실증 — 오버라이드를 Deployment 로 옮기면 FAILED, 제거해도 FAILED |
+| A3 | 리컨실러에 타입 지식 **0건** | `V1DaemonSet`/`instanceof`/`DAEMON_SET` 미검출. `shouldSkipByControllerOwner`(정책) / `isSupportedControllerType`(타입 대조) 분리 적절 |
+| A4 | 결정 2·3·4·7 네 파일 `git diff ffc9204` **빈 출력** | 파드 레벨은 모든 kind 에 대해 고쳐진 상태 유지 |
+
+## 9. 회귀 (B) — PASS
+
+- **B1**: base 대비 `34+/4−`. 삭제 4줄 전수 확인 → 전부 `setUp()` 의 `factory` 필드 승격분. 기존 4개
+  테스트 본문·어서션 **0줄 변경**.
+- **B2**: Deployment 케이스의 기대값 반전은 **옳다.** 세 가지로 "느슨하게 고친 것" 과 구별했다 —
+  ① 하네스가 `V1Deployment` + 플래그 `false` 로 운영과 일치 ② 1차의 `true` 어서션은 삭제가 아니라
+  `WorkloadControllerReconcilerUnsupportedOwnerTest` 로 **이전**돼 커버리지가 2분기 → 4분기로 증가
+  ③ 스킵 로직 반전 뮤테이션 시 양쪽 파일 3건이 함께 FAILED.
+- **B3**: `ReconciliationService` 무변경(0 라인).
+
+## 10. 배선 테스트 건전성 (C)
+
+- **C1 네트워크 없음 — PASS, 3중 확인.** 코드 경로(`startAllRegisteredInformers()` 호출자는
+  `OwnedObjectInformerManager:90` 뿐) · 업스트림 바이트코드(`setReadTimeout(0)` 요구가 실재) ·
+  **런타임 스레드 실측**(informer/reflector/OkHttp 스레드 0개, 6건 34ms).
+- **C1-b 스레드 정리 — 주의사항으로 기록.** 일회용 프로브 실측: 팩토리 6개 생성 시 non-daemon 스레드
+  6개 생성, `createController()` 는 추가 0개, `shutdown()` 후 대기 루프는 종료되지만 **스레드는 회수되지
+  않는다**(`DefaultDelayingQueue` 가 자기 executor 를 소유하고 `shutDown()` 이 그것을 종료하지 않음).
+  무해하며 팩토리에 executor 주입 지점이 없어 메인 코드 없이는 개선 불가 — 현 방식이 최선. "대기 루프를
+  정리한다" 는 주석이 자원 회수로 읽히므로 **실측대로 정정**했다.
+- **C2 잔여물** — 미사용 `import java.util.Map;` 1건 발견·삭제. 바이트코드 검사 잔여 코드·죽은 헬퍼 0건.
+- **C3 판별력** — 뮤테이션 7건으로 재확인. 6건 중 5건이 각각 고유 뮤테이션에서만 깨진다.
+  **`daemonSetInformerRegistrar` `@Bean` 삭제는 잡지 못한다** — 테스트가 registrar 목록을 직접 구성하기
+  때문. 기동 시 `::hasSynced` NPE 로 크게 드러나므로 닫지 않고 남겼다(바이트코드 테스트를 삭제할 때와
+  같은 기준).
+
+## 11. 구현자 자기보고 한계 (D) — **빈틈 실재. 닫았다** (심각도 중간)
+
+두 테스트의 조합은 같은 보증을 주지 **않았다.** (a) 정책 훅 고정 테스트는 팩토리 반환값만,
+(b) 리컨실러 단위 테스트는 테스트가 직접 넘긴 리터럴만 본다 — **전달 구간이 무관측**이었다.
+
+**뮤테이션으로 실증**: `createReconciler` 호출부를 `reconcilesWhenOwnedByUnsupportedType(),` →
+`false,` 로 바꿨다. 이는 운영에서 CR 소유 DaemonSet 이 조용히 toleration 0개로 회귀하는 상태
+(= 이 티켓의 원래 결함 재발)인데 **전체 스위트가 BUILD SUCCESSFUL** 이었다.
+
+메인 코드 변경 없이 닫았다 — 업스트림 바이트코드에서 ① `DefaultControllerBuilder.build()` 가 리컨실러를
+감싸지 않고 그대로 넘긴다 ② `DefaultController.getReconciler()` 가 public 임을 확인해, 실제 빌드된
+컨트롤러에서 운영에 도는 리컨실러를 꺼내 팩토리 반환값과 대조하는 테스트를 추가했다(리컨실러 필드는
+`private` 유지, 테스트에서만 리플렉션). **재실행 시 이 테스트 1건 FAILED** — 닫혔음을 확인.
+
+행동 기반 검증은 채택하지 않았다. 플래그 `true`/`false` 가 둘 다 `Result(false)` 를 반환해(노드 0개 →
+`Set.copyOf` 일치 → API 호출 없음) 구별 불가하고, 구별하려면 실제 PATCH 를 유발해 "네트워크 없음"
+성질을 깨야 한다. 부수적으로 컨트롤러 빌드를 `@BeforeAll` 로 옮겨 팩토리당 1회만 빌드하도록 정리했다
+(중복 watch 등록 방지, 기존 어서션 전부 유지).
+
+## 12. 멱등성 관점의 개선
+
+축소로 `Workspace` 소유 StatefulSet 3건이 쓰기 대상에서 빠져 **aipub-backend 와의 update 루프
+가능성이 제거**됐다. 1차 보고서 §6 관찰이 지적한 사각지대가 코드로 해소된 셈이다.
+
+## 13. 델타 이후 미해결
+
+1. **Spring DI 미검증** — 배선 테스트의 명시적 범위 밖. `@Bean` registrar 누락 회귀도 이 범주.
+   기동 로그 확인으로 대체한다.
+2. **스테이징 실측** — 회귀 체크에 추가된 "CR 소유 Deployment/StatefulSet 6건 템플릿 불변 ·
+   Workspace 파드 미재시작" 이 축소가 지켜졌는지 보는 핵심 지표다.
+3. 실제 DaemonSet 팩토리 → 리컨실러 조립은 §11 로 닫혔으나, `ControllerManager.run()` 이후의 런타임
+   경로(watch 연결, 캐시 동기화, 워커 루프)는 여전히 의도적 미검증.
