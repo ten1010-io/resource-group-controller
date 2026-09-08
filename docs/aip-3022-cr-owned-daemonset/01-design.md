@@ -116,9 +116,14 @@ project-managed toleration: 0개
 
 ## 2. 설계 결정
 
-### 결정 1 — 리컨실러가 owner kind 를 대조한다 **(채택)**
+### 결정 1 — 리컨실러가 owner kind 를 대조한다 **(채택 · 적용 범위는 DaemonSet 한정)**
 
 `WorkloadControllerReconciler` 의 조기 반환을 "controller ownerReference 존재"에서 "controller ownerReference 의 `(apiVersion, kind)` 가 `supportedTypes` 에 있음"으로 좁힌다. 미지원이면 스킵하지 않고 자기 자신을 root 로 리컨실한다.
+
+> **2026-09-08 범위 축소.** 이 "미지원 owner → 자기 자신 root" 를 **DaemonSet 리컨실러에만** 적용한다.
+> 나머지 5종(CronJob · Deployment · Job · ReplicaSet · StatefulSet)은 미지원 owner 를 만나면 종전처럼
+> 스킵한다. 초안은 6종 전부에 적용하는 것이었고, 구현·QA 를 통과한 뒤 블라스트 반경을 실측해
+> 좁혔다. 근거는 아래 "적용 범위" 절.
 
 - **근거**: `allowAllDaemonSets: true` 정책이 18개 중 17개에 적용되는데 trident 만 owner kind 때문에 빠진다. 정책 선언과 실제의 불일치이며, 벤더 기본값 덕에 우연히 살아 있었을 뿐이다(§1.2, §1.4).
 - 대조 키는 `RootWorkloadControllerResolver` 와 **동일하게 `K8sObjectTypeKey(apiVersion, kind)`** 를 쓴다. 한쪽만 kind 만 보면 두 경로의 root 정의가 갈라진다.
@@ -126,6 +131,42 @@ project-managed toleration: 0개
 - `supportedTypes` 를 리컨실러에 주입해야 하므로 `WorkloadControllerFactory.createReconciler()`(:86-94) 시그니처가 바뀐다. `ControllerConfiguration:251-257` 이 이미 팩토리 목록에서 `supportedTypes` 를 모으므로 같은 값을 재사용한다.
 - **회귀 안전**: 기존 테스트 `WorkloadControllerReconcilerTest:148`(`controllerOwnedWorkloadInAllowlistedNamespace_skipped`)는 owner kind 를 `apps/v1 Deployment`(지원 타입)로 쓰므로 그대로 통과한다. 티켓의 "지원 kind 부모는 여전히 스킵" 수용 기준이 이미 부분 커버돼 있다.
 - **부수 효과**: 조기 반환이 allowlist 검사보다 앞이므로(§1.7), 이 변경으로 CR 소유 워크로드도 allowlist 분기에 도달하게 된다. 의도한 방향이다.
+
+#### 적용 범위 — 왜 DaemonSet 한정인가
+
+6종 전부에 적용하면 trident 만이 아니라 **프로젝트 네임스페이스의 AIPub 자체 CR 소유 워크로드**
+(§1.3)도 새 쓰기 대상이 된다. cluster12 실측으로 두 그룹의 운명이 갈렸다.
+
+| 대상 | 현재 템플릿 | 리컨실 후 | 결과 |
+|---|---|---|---|
+| `Operation` 소유 Deployment 2건 (`jb-test2`) | pm-tol 4개(`Equal`, 바인딩 노드 2 × effect 2) · nodeSelectorTerm `project-managed In true` · imagePullSecrets `image-registry-secret-...-jb-test2` | 동일 | **이미 고정점** → `Set.copyOf` 3종 일치 → 쓰기 없음 |
+| `Workspace` 소유 StatefulSet 3건 (`fe-team` · `hk-proj` · `test-lyj`) | `tolerations: null` · `affinity: null` · `imagePullSecrets: null` | pm-tol 4개 + nodeSelectorTerm 1개 + imagePullSecret 1개 | 세 값 모두 달라 **쓰기 발생** |
+
+StatefulSet 의 `spec.template` 이 바뀌면 파드가 재생성된다. 즉 배포 시 **실행 중인 Workspace 3개가
+1회 롤링 재시작**된다. Workspace 는 대화형 개발 환경이므로 사용자에게 그대로 드러난다.
+
+더 무거운 쪽은 두 번째다. aipub-backend 가 Workspace CR 을 관리하며 StatefulSet 을 재적용할 때 그
+필드를 빼고 쓰면 project-controller 가 다시 넣어 **update 루프**가 된다. 결정 6이 상정한 루프
+시나리오인데 상대가 trident-operator 가 아니라 **aipub-backend** 다. trident-operator 는 6주간
+spec 을 건드리지 않았지만(§1.5) aipub-backend 는 Workspace 를 능동적으로 관리한다.
+
+축소가 다른 결정과 어긋나지 않는다:
+
+- AIP-3097 수용 기준 문구 자체가 "CR 소유 **DaemonSet** 이 NodeGroup `daemonSetPolicy` 허용 대상이면
+  …" 이다. 원래 요구사항이 DaemonSet 범위였다.
+- NodeGroup `daemonSetPolicy` 는 DaemonSet 전용 예외 정책(AIP-1998)이다. **그래서 CR 소유 DaemonSet
+  만 "주인 없는 상태" 가 실제 결함이 된다** — 정책으로 예외 허용을 받았는데 아무도 주입하지 않는
+  모순이 DaemonSet 에서만 생긴다. 결정 5(비대칭은 의도)와 같은 논리다.
+- 파드 레벨은 축소와 무관하게 **모든 kind 에 대해 고쳐진 상태**로 남는다(결정 2·3·4·7). Workspace
+  파드가 strict 노드에서 삭제되던 문제도 결정 3으로 해소된다.
+
+남는 것: CR 소유 Deployment/StatefulSet 의 **템플릿은 계속 미리컨실**이다. 파드는 웹훅이 처리하므로
+현재 증상이 없고, 이는 결정 5가 이미 받아들인 상태다. 필요해지면 네임스페이스 allowlist 로 처리한다.
+
+구현은 범용 리컨실러에 타입 분기를 박지 않고 `WorkloadControllerFactory` 의 오버라이드 가능한 정책
+훅(기본값 `false`, DaemonSet 팩토리만 `true`)으로 표현한다. **`true` 인 팩토리가 DaemonSet 하나뿐임을
+테스트로 고정**한다 — 누가 다른 팩토리에서 켜면 위 Workspace 재시작 위험이 되살아나므로 이것이
+축소의 핵심 안전장치다.
 
 ### 결정 2 — root 해석이 미지원 owner 에서 예외 대신 직전 지원 객체를 반환한다 **(채택)**
 
@@ -201,25 +242,69 @@ AIP-3097 과 AIP-3098 은 서로 독립적으로 적용 가능하다. AIP-3099 �
 
 - `WorkloadControllerReconcilerTest`
   - 유지: owner kind 가 `apps/v1 Deployment` 면 스킵 (`:148`, 회귀 고정)
-  - 신규: owner kind 가 미지원(`trident.netapp.io/v1 TridentOrchestrator`)이면 자기 자신을 root 로 리컨실
-  - 신규: owner kind 가 지원 타입이지만 informer 미등록이면 미지원과 동일 처리
-- `RootWorkloadControllerResolver`: 미지원 owner → 직전 지원 객체 반환 / 부모 미존재 → 현재 객체 반환
-- `PodReviewHandlerTest`: CR 소유 DaemonSet 의 파드가 `DaemonSetWorkloadControllerNodesResolver` 경로를 타 NodeGroup 정책 노드 toleration 을 받는지
-- `PodReconciler`: 미지원 owner 파드가 **삭제되지 않고**, `allowedProjectNodes` 밖의 파드는 여전히 삭제되는지
+  - 신규: **플래그 `false`(Deployment 등)** 는 미지원 owner 여도 스킵한다
+  - 신규: **플래그 `true`(DaemonSet)** 는 미지원 owner(`trident.netapp.io/v1 TridentOrchestrator`)면
+    스킵하지 않고 자기 자신을 root 로 리컨실한다
+  - 신규: 플래그 `true` 경로에서 owner kind 가 지원 타입이지만 informer 미등록이면 미지원과 동일 처리
+- **범위 축소 안전장치**: 정책 훅 기본값이 `false` 이고 워크로드 팩토리 6개 중 `true` 인 것이
+  **DaemonSet 하나뿐**임을 고정한다. 다른 팩토리에서 켜지면 결정 1 "적용 범위" 절의 Workspace
+  재시작·aipub-backend 쓰기 경합 위험이 되살아난다
+- `RootWorkloadControllerResolver`: 미지원 owner → 직전 지원 객체 반환 / 부모 미존재 → 현재 객체 반환 /
+  지원 체인(Pod→ReplicaSet→Deployment) → 최상단 반환 / 파드 owner 미해석 → `empty`
+- `PodReviewHandlerTest`: CR 소유 DaemonSet 의 파드가 `DaemonSetWorkloadControllerNodesResolver` 경로를
+  타 NodeGroup 정책 노드 toleration 을 받는지 (mock 이 아니라 실제 배선을 조립)
+- `PodReconciler`: 미지원 owner 파드가 **삭제되지 않고**, `allowedProjectNodes` 밖의 파드는 여전히
+  삭제되는지
+
+**배선 검증 (`ControllerConfigurationWiringTest`)**
+
+`controllerManager` 빈 메서드가 그 안에서 executor 를 띄워 매니저를 실행하므로 통짜 `@SpringBootTest`
+는 쓰지 않는다. 대신 배선 불변식만 겨냥한다.
+
+- `resolveSupportedWorkloadTypes()` 가 모은 값이 지원 6종과 정확히 일치 — 하나라도 빠지면 그 kind 를
+  owner 로 갖는 자식이 미지원으로 판정돼 **Deployment→ReplicaSet 중복 리컨실이 조용히 되살아난다**
+- `ControllerConfiguration` 의 `@Bean` 메서드 중 `WorkloadControllerFactory` 를 반환하는 것이 6개
+  (7번째가 추가되면 알려준다). 클래스 수가 아니라 **`@Bean` 메서드 수**를 센다
+- 6개 팩토리가 `createController(supportedTypes)` 로 실제로 빌드된다. 운영 코드
+  `SharedInformerFactoryProvider` + 운영과 같은 registrar 로 만든 **실제 `SharedInformerFactory`** 를
+  쓴다(등록은 API 를 때리지 않는다 — 스레드·소켓 실측으로 확인)
+- 무인자 `createController()` 는 `UnsupportedOperationException`
+- **정책 훅이 `true` 인 팩토리는 DaemonSet 하나뿐**이다. 클래스 이름이 아니라
+  `getObjectType().typeKey()` 로 판정해, 오버라이드가 다른 팩토리로 옮겨가도 잡는다
+- **팩토리의 정책 값이 실제로 빌드된 리컨실러까지 전달된다.** `DefaultController.getReconciler()` 로
+  운영에 도는 리컨실러를 꺼내 팩토리 반환값과 대조한다. 이 테스트가 없으면 `createReconciler` 호출부를
+  `false` 리터럴로 바꾸는 회귀(= CR 소유 DaemonSet 이 조용히 toleration 0개로 돌아가는, 이 티켓의
+  원래 결함 재발)를 **아무도 잡지 못한다** — QA 델타 검증에서 뮤테이션으로 실증된 빈틈이다
+
+> **이 배선 테스트가 덮지 않는 것**: registrar 목록을 테스트가 직접 구성하므로, Spring 설정에서
+> `@Bean` registrar 가 빠지는 회귀는 잡지 못한다(기동 시 `configureReadyFunc()` 의 `::hasSynced`
+> NPE 로 크게 드러난다). Spring DI 자체(빈 스캔, `List<WorkloadControllerFactory<?>>` 주입 해석)와
+> `ControllerManager.run()` 경로도 명시적으로 범위 밖이다 — 아래 스테이징 항목 6 참조.
 
 **스테이징 실측 (결정 6의 전제)**
 
 1. trident 설치 후 결정 1·2 적용
 2. `trident-node-linux` 템플릿에 pm-toleration 6개 주입 확인
-3. `metadata.generation` 이 한 번 오르고 멈추는지 관측 → 루프 없음 판정. `managedFields[].time` 으로 `trident-operator` 의 재기록 여부 확인
+3. `metadata.generation` 이 한 번 오르고 멈추는지 관측 → 루프 없음 판정. `managedFields[].time` 으로
+   `trident-operator` 의 재기록 여부 확인
 4. 파드 재생성 시 project-managed 노드에 스케줄 성공 확인
 5. 노드를 `isolation-mode=strict` 로 전환해 파드가 삭제되지 않는지 확인
+6. 기동 로그로 워크로드 컨트롤러 6개 등록 확인 — Spring DI(빈 스캔, `List<WorkloadControllerFactory<?>>`
+   주입 해석)와 `ControllerManager.run()` 경로는 배선 테스트가 덮지 않는다
+
+> **결정 1을 DaemonSet 으로 좁힌 뒤 관측 대상에서 빠진 것**: AIPub 자체 CR 소유 5건(Operation×2
+> Deployment, Workspace×3 StatefulSet)은 리컨실 대상이 아니므로 generation 관측이 필요 없다. 초안대로
+> 6종 전부에 적용했다면 이들이 새 쓰기 대상이 되어 관측이 필수였다 — 결정 1 "적용 범위" 절 참조.
 
 **운영 회귀 방지 체크**
 
 - DaemonSet 15개의 pm-toleration 6개 유지
 - cilium 2개는 0 유지
-- `fluent-bit` 의 coaster `evict-ds` nodeAffinity term 보존 (project==null 경로에서 affinity 가 지워지지 않는지)
+- `fluent-bit` 의 coaster `evict-ds` nodeAffinity term 보존 (project==null 경로에서 affinity 가
+  지워지지 않는지)
+- **CR 소유 Deployment/StatefulSet 6건의 템플릿이 그대로인지** — 범위 축소가 실제로 지켜졌는지 보는
+  체크다. 특히 `Workspace` 소유 StatefulSet 3건의 `tolerations`/`affinity`/`imagePullSecrets` 가
+  계속 `null` 이어야 하고, 파드가 재시작되지 않아야 한다
 
 ---
 

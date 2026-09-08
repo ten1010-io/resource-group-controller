@@ -3,7 +3,6 @@ package io.ten1010.aipub.projectcontroller.controller.workload;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -23,7 +22,6 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1OwnerReference;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodTemplateSpec;
-import io.kubernetes.client.openapi.models.V1StatefulSet;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DockerConfigJsonResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectType;
@@ -94,6 +92,7 @@ class WorkloadControllerReconcilerTest {
         this.factory,
         reconciliationService,
         SUPPORTED_TYPES,
+        false,
         V1Deployment.class,
         controller -> ((V1Deployment) controller).getSpec().getTemplate(),
         this.mockObjectReconciler,
@@ -173,43 +172,19 @@ class WorkloadControllerReconcilerTest {
   }
 
   @Test
-  @DisplayName("owner kind가 미지원 타입이면 스킵하지 않고 자기 자신을 root로 reconcile한다")
-  void unsupportedControllerOwnedWorkload_reconciledAsItsOwnRoot() throws ApiException {
+  @DisplayName("미지원 owner여도 정책이 꺼진 타입(Deployment)이면 reconcile하지 않는다")
+  void unsupportedControllerOwnedWorkload_skippedWhenPolicyDisabled() throws ApiException {
+    // reconcilesWhenOwnedByUnsupportedType == false 인 타입이다. 이 워크로드의 spec.template 을
+    // 새로 쓰면 실행 중 파드가 재시작되고 소유 CR 컨트롤러와 쓰기 경합이 생기므로 건드리지 않는다.
     V1OwnerReference controllerRef = new V1OwnerReference()
         .apiVersion("trident.netapp.io/v1").kind("TridentOrchestrator")
         .name("owner").uid("uid").controller(true);
-    V1Deployment deployment = deployment("default", Map.of(), List.of(controllerRef));
-    this.deploymentCache.add(deployment);
-    when(this.mockObjectReconciler.reconcileController(any(), anyList(), anyList(), anyList()))
-        .thenReturn(new Result(false));
+    this.deploymentCache.add(deployment("default", Map.of(), List.of(controllerRef)));
 
     Result result = this.reconciler.reconcileInternal(new Request("default", "test-deployment"));
 
     assertThat(result.isRequeue()).isFalse();
-    // 미지원 owner 는 root 가 아니므로 워크로드 자신을 root 로 보아 노드를 해석해야 한다
-    verify(this.mockNodesResolver).getNodes(deployment);
-    verify(this.mockObjectReconciler)
-        .reconcileController(eq(deployment), anyList(), anyList(), anyList());
-  }
-
-  @Test
-  @DisplayName("owner kind가 지원 타입이어도 informer가 등록되지 않았으면 미지원과 동일하게 reconcile한다")
-  void supportedOwnerKindWithoutInformer_reconciledAsItsOwnRoot() throws ApiException {
-    // apps/v1 StatefulSet 은 지원 타입이지만 informer 가 등록되지 않은 상태를 명시적으로 만든다
-    when(this.factory.getExistingSharedIndexInformer(V1StatefulSet.class)).thenReturn(null);
-    V1OwnerReference controllerRef = new V1OwnerReference()
-        .apiVersion("apps/v1").kind("StatefulSet").name("owner").uid("uid").controller(true);
-    V1Deployment deployment = deployment("default", Map.of(), List.of(controllerRef));
-    this.deploymentCache.add(deployment);
-    when(this.mockObjectReconciler.reconcileController(any(), anyList(), anyList(), anyList()))
-        .thenReturn(new Result(false));
-
-    Result result = this.reconciler.reconcileInternal(new Request("default", "test-deployment"));
-
-    assertThat(result.isRequeue()).isFalse();
-    verify(this.mockNodesResolver).getNodes(deployment);
-    verify(this.mockObjectReconciler)
-        .reconcileController(eq(deployment), anyList(), anyList(), anyList());
+    verifyNoInteractions(this.mockObjectReconciler, this.mockNodesResolver);
   }
 
 }

@@ -33,6 +33,7 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
   private final ReconciliationService reconciliationService;
   private final SharedInformerFactory sharedInformerFactory;
   private final Map<K8sObjectTypeKey, K8sObjectType<?>> supportedTypes;
+  private final boolean reconcilesWhenOwnedByUnsupportedType;
   private final Class<? extends KubernetesObject> controllerObjectClass;
   private final Indexer<? extends KubernetesObject> controllerIndexer;
   private final Indexer<V1alpha1Project> projectIndexer;
@@ -44,6 +45,7 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
       SharedInformerFactory sharedInformerFactory,
       ReconciliationService reconciliationService,
       List<? extends K8sObjectType<?>> supportedTypes,
+      boolean reconcilesWhenOwnedByUnsupportedType,
       Class<? extends KubernetesObject> controllerObjectClass,
       Function<KubernetesObject, V1PodTemplateSpec> podTemplateSpecResolver,
       ControllerObjectReconciler controllerObjectReconciler,
@@ -58,6 +60,7 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
     for (K8sObjectType<?> type : supportedTypes) {
       this.supportedTypes.put(type.typeKey(), type);
     }
+    this.reconcilesWhenOwnedByUnsupportedType = reconcilesWhenOwnedByUnsupportedType;
     this.controllerIndexer = sharedInformerFactory
         .getExistingSharedIndexInformer(controllerObjectClass)
         .getIndexer();
@@ -79,7 +82,7 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
       return new Result(false);
     }
     KubernetesObject controller = controllerOpt.get();
-    if (isOwnedBySupportedControllerType(controller)) {
+    if (shouldSkipByControllerOwner(controller)) {
       return new Result(false);
     }
 
@@ -116,21 +119,37 @@ public class WorkloadControllerReconciler extends AbstractReconciler {
   }
 
   /**
-   * controller ownerReference의 {@code (apiVersion, kind)}가 지원 워크로드 타입이고 그 타입의
-   * informer가 등록돼 있으면 true. 이때는 root 워크로드가 따로 reconcile되므로 여기서는 건너뛴다.
+   * controller ownerReference를 보고 이 워크로드를 건너뛸지 정한다.
    *
-   * <p>미지원 kind(임의 CR이 소유한 워크로드)나 informer가 등록되지 않은 타입이 소유한 워크로드는
-   * 아무도 reconcile하지 않는다. 그러므로 건너뛰지 않고 자기 자신을 root로 보아 계속 진행한다.
-   * 판정 기준({@link K8sObjectTypeKey} 일치 + informer 등록 여부)은
-   * {@link RootWorkloadControllerResolver}의 root 정의와 동일해야 한다.
+   * <ul>
+   *   <li>controller ownerReference 없음 → 진행. 자기 자신이 root 다
+   *   <li>owner 가 지원 워크로드 타입 → <b>스킵</b>. root 워크로드가 따로 reconcile 된다
+   *   <li>owner 가 미지원 kind(임의 CR)이거나 그 타입의 informer 미등록 →
+   *       {@code reconcilesWhenOwnedByUnsupportedType} 일 때만 진행. 아니면 스킵
+   * </ul>
+   *
+   * <p>세 번째 경우는 아무도 reconcile 하지 않는 상태다. 그것이 실제 결함인지는 워크로드 타입의
+   * 정책에 달려 있어 팩토리가 정한다
+   * ({@link WorkloadControllerFactory#reconcilesWhenOwnedByUnsupportedType()} — DaemonSet 만
+   * {@code true}). 그래서 이 리컨실러는 특정 타입을 알지 않는다.
+   *
+   * <p>지원 타입 판정 기준({@link K8sObjectTypeKey} 일치 + informer 등록 여부)은
+   * {@link RootWorkloadControllerResolver}의 root 정의와 동일해야 한다. 파드 레벨 경로는 이
+   * 플래그와 무관하게 모든 kind 에 대해 root 를 해석한다.
    */
-  private boolean isOwnedBySupportedControllerType(KubernetesObject controller) {
+  private boolean shouldSkipByControllerOwner(KubernetesObject controller) {
     Optional<V1OwnerReference> ownerReferenceOpt = K8sObjectUtils.findControllerOwnerReference(
         controller);
     if (ownerReferenceOpt.isEmpty()) {
       return false;
     }
-    V1OwnerReference ownerReference = ownerReferenceOpt.get();
+    if (isSupportedControllerType(ownerReferenceOpt.get())) {
+      return true;
+    }
+    return !this.reconcilesWhenOwnedByUnsupportedType;
+  }
+
+  private boolean isSupportedControllerType(V1OwnerReference ownerReference) {
     K8sObjectType<?> ownerType = this.supportedTypes.get(
         new K8sObjectTypeKey(ownerReference.getApiVersion(), ownerReference.getKind()));
     if (ownerType == null) {
