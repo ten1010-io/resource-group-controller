@@ -56,6 +56,17 @@ public class DaemonSetWorkloadControllerFactory extends WorkloadControllerFactor
     return new DaemonSetWorkloadControllerNodesResolver(this.sharedInformerFactory);
   }
 
+  /**
+   * DaemonSet 은 유일하게 {@code true} 다. NodeGroup {@code daemonSetPolicy} 가 DaemonSet 전용
+   * 예외 정책이므로, 임의 CR 이 소유한 DaemonSet 이 아무에게도 reconcile 되지 않는 상태가 실제
+   * 결함이 된다. 다른 타입으로 넓히면 안 되는 이유는
+   * {@link WorkloadControllerFactory#reconcilesWhenOwnedByUnsupportedType()} 참조.
+   */
+  @Override
+  protected boolean reconcilesWhenOwnedByUnsupportedType() {
+    return true;
+  }
+
   @Override
   protected void configureControllerName() {
     this.builder.withName("daemon-set-controller");
