@@ -12,6 +12,7 @@ import io.kubernetes.client.util.generic.GenericKubernetesApi;
 import io.ten1010.aipub.projectcontroller.controller.AbstractReconciler;
 import io.ten1010.aipub.projectcontroller.controller.BoundObjectResolver;
 import io.ten1010.aipub.projectcontroller.controller.RequestHelper;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.TemplateService;
 import io.ten1010.aipub.projectcontroller.domain.k8s.FinalizersConstants;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sApiProvider;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectTypeConstants;
@@ -34,8 +35,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProjectReconciler extends AbstractReconciler {
+
+  private static final Logger log = LoggerFactory.getLogger(ProjectReconciler.class);
 
   private final ReconciliationService reconciliationService;
   private final Indexer<V1alpha1Project> projectIndexer;
@@ -47,13 +52,16 @@ public class ProjectReconciler extends AbstractReconciler {
   private final KeyResolver keyResolver;
   private final NamespaceNameResolver namespaceNameResolver;
   private final List<String> reservedName;
+  private final TemplateService templateService;
 
   public ProjectReconciler(
       ReconciliationService reconciliationService,
       SharedInformerFactory sharedInformerFactory,
       K8sApiProvider k8sApiProvider,
-      List<String> reservedName) {
+      List<String> reservedName,
+      TemplateService templateService) {
     this.reconciliationService = reconciliationService;
+    this.templateService = templateService;
     this.projectIndexer = sharedInformerFactory
         .getExistingSharedIndexInformer(V1alpha1Project.class)
         .getIndexer();
@@ -108,6 +116,8 @@ public class ProjectReconciler extends AbstractReconciler {
   private Result reconcileTerminatingProject(V1alpha1Project project, boolean namespaceRemoved)
       throws ApiException {
     if (namespaceRemoved) {
+      deleteTemplatesQuietly(K8sObjectUtils.getName(project));
+
       V1alpha1Project clone = ProjectUtils.clone(project);
       Objects.requireNonNull(clone.getMetadata());
       Objects.requireNonNull(clone.getMetadata().getFinalizers());
@@ -117,6 +127,15 @@ public class ProjectReconciler extends AbstractReconciler {
       this.projectApi.update(clone);
     }
     return new Result(false);
+  }
+
+  private void deleteTemplatesQuietly(String projectName) {
+    try {
+      this.templateService.deleteTemplatesByProject(projectName);
+    } catch (Exception e) {
+      log.error("Failed to clean up templates; leaving them to the backend cleanup batch: project={}",
+          projectName, e);
+    }
   }
 
   private Result reconcileExistingProject(V1alpha1Project project,

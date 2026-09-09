@@ -11,11 +11,13 @@ import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobot
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobotService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobotUsernameResolver;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.RepositoryService;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.TemplateService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ArtifactServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageHubServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageRegistryRobotServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageRegistryRobotUsernameResolverImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.RepositoryServiceImpl;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.TemplateServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DefaultDockerConfigJsonResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DefaultSubjectResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DockerConfigJsonResolver;
@@ -35,9 +37,14 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 public class AipubConfiguration {
 
+  private static final String V1ALPHA1_BASE_PATH = "/api/v1alpha1";
+  private static final String V1ALPHA2_BASE_PATH = "/api/v1alpha2";
+
   private final boolean aipubEnabled;
   @Nullable
   private final ApiClient aipubBackendClient;
+  @Nullable
+  private final ApiClient aipubBackendV1alpha2Client;
   @Nullable
   private final String harborExternalUrl;
 
@@ -54,18 +61,23 @@ public class AipubConfiguration {
 
       this.harborExternalUrl = aipubProperties.getHarborExternalUrl();
 
-      ApiClient client = new ApiClient();
-      client.setBasePath(aipubProperties.getServerUrl() + "/api/v1alpha1");
-      client.setVerifyingSsl(aipubProperties.getVerifyingSsl());
-      Authentication authentication = new HttpBasicAuthentication(aipubProperties.getUsername(),
-          aipubProperties.getPassword());
-      client.setAuthentication(authentication);
-
-      this.aipubBackendClient = client;
+      this.aipubBackendClient = buildClient(aipubProperties, V1ALPHA1_BASE_PATH);
+      this.aipubBackendV1alpha2Client = buildClient(aipubProperties, V1ALPHA2_BASE_PATH);
     } else {
       this.aipubBackendClient = null;
+      this.aipubBackendV1alpha2Client = null;
       this.harborExternalUrl = null;
     }
+  }
+
+  private static ApiClient buildClient(AipubProperties aipubProperties, String basePath) {
+    ApiClient client = new ApiClient();
+    client.setBasePath(aipubProperties.getServerUrl() + basePath);
+    client.setVerifyingSsl(Objects.requireNonNull(aipubProperties.getVerifyingSsl()));
+    Authentication authentication = new HttpBasicAuthentication(aipubProperties.getUsername(),
+        aipubProperties.getPassword());
+    client.setAuthentication(authentication);
+    return client;
   }
 
   @Bean
@@ -109,6 +121,16 @@ public class AipubConfiguration {
       return new ImageHubServiceImpl(this.aipubBackendClient);
     }
     return (hubId) -> Optional.empty();
+  }
+
+  @Bean
+  public TemplateService templateService() {
+    if (this.aipubEnabled) {
+      Objects.requireNonNull(this.aipubBackendV1alpha2Client);
+      return new TemplateServiceImpl(this.aipubBackendV1alpha2Client);
+    }
+    return (_) -> {
+    };
   }
 
   @Bean

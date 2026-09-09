@@ -13,6 +13,7 @@ import io.ten1010.aipub.projectcontroller.controller.ControllerFactory;
 import io.ten1010.aipub.projectcontroller.controller.watch.DefaultControllerWatch;
 import io.ten1010.aipub.projectcontroller.controller.watch.OnUpdateFilterFactory;
 import io.ten1010.aipub.projectcontroller.controller.watch.RequestBuilderFactory;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.TemplateService;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sApiProvider;
 import io.ten1010.aipub.projectcontroller.domain.k8s.ReconciliationService;
 import io.ten1010.aipub.projectcontroller.domain.k8s.dto.V1alpha1AipubUser;
@@ -31,18 +32,21 @@ public class ProjectControllerFactory implements ControllerFactory {
   private final OnUpdateFilterFactory onUpdateFilterFactory;
   private final RequestBuilderFactory requestBuilderFactory;
   private final List<String> reservedName;
+  private final TemplateService templateService;
 
   public ProjectControllerFactory(
       SharedInformerFactory sharedInformerFactory,
       K8sApiProvider k8sApiProvider,
       ReconciliationService reconciliationService,
-      List<String> reservedName) {
+      List<String> reservedName,
+      TemplateService templateService) {
     this.sharedInformerFactory = sharedInformerFactory;
     this.k8sApiProvider = k8sApiProvider;
     this.reconciliationService = reconciliationService;
     this.onUpdateFilterFactory = new OnUpdateFilterFactory();
     this.requestBuilderFactory = new RequestBuilderFactory(sharedInformerFactory);
     this.reservedName = reservedName;
+    this.templateService = templateService;
   }
 
   @Override
@@ -73,7 +77,7 @@ public class ProjectControllerFactory implements ControllerFactory {
         .watch(this::createImageHubWatch)
         .withReconciler(
             new ProjectReconciler(this.reconciliationService, this.sharedInformerFactory,
-                this.k8sApiProvider, this.reservedName))
+                this.k8sApiProvider, this.reservedName, this.templateService))
         .build();
   }
 
