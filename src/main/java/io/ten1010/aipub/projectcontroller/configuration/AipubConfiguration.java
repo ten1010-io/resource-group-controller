@@ -23,8 +23,6 @@ import io.ten1010.aipub.projectcontroller.domain.k8s.DefaultSubjectResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DockerConfigJsonResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.SubjectResolver;
 import io.ten1010.common.apiclient.ApiClient;
-import io.ten1010.common.apiclient.Authentication;
-import io.ten1010.common.apiclient.HttpBasicAuthentication;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -55,12 +53,8 @@ public class AipubConfiguration {
     if (this.aipubEnabled) {
       Objects.requireNonNull(aipubProperties.getServerUrl());
       Objects.requireNonNull(aipubProperties.getHarborExternalUrl());
-      Objects.requireNonNull(aipubProperties.getVerifyingSsl());
-      Objects.requireNonNull(aipubProperties.getUsername());
-      Objects.requireNonNull(aipubProperties.getPassword());
 
       this.harborExternalUrl = aipubProperties.getHarborExternalUrl();
-
       this.aipubBackendClient = buildClient(aipubProperties, V1ALPHA1_BASE_PATH);
       this.aipubBackendV1alpha2Client = buildClient(aipubProperties, V1ALPHA2_BASE_PATH);
     } else {
@@ -70,14 +64,11 @@ public class AipubConfiguration {
     }
   }
 
+  // basePath 만 다른 두 클라이언트. 인증은 mTLS 클라이언트 인증서 하나로 통일돼 있다.
   private static ApiClient buildClient(AipubProperties aipubProperties, String basePath) {
-    ApiClient client = new ApiClient();
-    client.setBasePath(aipubProperties.getServerUrl() + basePath);
-    client.setVerifyingSsl(Objects.requireNonNull(aipubProperties.getVerifyingSsl()));
-    Authentication authentication = new HttpBasicAuthentication(aipubProperties.getUsername(),
-        aipubProperties.getPassword());
-    client.setAuthentication(authentication);
-    return client;
+    return AipubBackendClientFactory.create(
+        aipubProperties.getServerUrl(), aipubProperties.isVerifyingSsl(),
+        aipubProperties.getMtls(), basePath);
   }
 
   @Bean
@@ -129,7 +120,7 @@ public class AipubConfiguration {
       Objects.requireNonNull(this.aipubBackendV1alpha2Client);
       return new TemplateServiceImpl(this.aipubBackendV1alpha2Client);
     }
-    return (_) -> {
+    return (projectName) -> {
     };
   }
 

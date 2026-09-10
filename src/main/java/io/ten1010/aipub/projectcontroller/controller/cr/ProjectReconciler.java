@@ -129,12 +129,13 @@ public class ProjectReconciler extends AbstractReconciler {
     return new Result(false);
   }
 
+  // best-effort — 백엔드 장애가 project 를 Terminating 에 묶거나 같은 루프의 finalizer 제거를 막으면 안 된다.
+  // 놓친 행은 backend 의 고아 정리 배치가 회수한다.
   private void deleteTemplatesQuietly(String projectName) {
     try {
       this.templateService.deleteTemplatesByProject(projectName);
     } catch (Exception e) {
-      log.error("Failed to clean up templates; leaving them to the backend cleanup batch: project={}",
-          projectName, e);
+      log.error("Failed to clean up templates of a deleted project: project={}", projectName, e);
     }
   }
 

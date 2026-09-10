@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.extended.controller.reconciler.Request;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
@@ -33,28 +34,25 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+/** project 삭제 훅의 Template 정리. 정리는 best-effort 라 실패해도 삭제 흐름이 멈추지 않는 것까지 함께 고정한다. */
 class ProjectReconcilerTemplateCleanupTest {
 
   private static final String PROJECT_NAME = "proj-a";
 
   private Cache<V1alpha1Project> projectCache;
-  private Cache<V1Namespace> namespaceCache;
   private TemplateService templateService;
   private ProjectReconciler reconciler;
 
-  @SuppressWarnings("unchecked")
   @BeforeEach
   void setUp() {
     this.projectCache = new Cache<>();
-    this.namespaceCache = new Cache<>();
     this.templateService = mock(TemplateService.class);
 
     SharedInformerFactory factory = mock(SharedInformerFactory.class);
     bindInformer(factory, V1alpha1Project.class, this.projectCache);
-    bindInformer(factory, V1Namespace.class, this.namespaceCache);
+    bindInformer(factory, V1Namespace.class, new Cache<>());
     bindInformer(factory, V1ResourceQuota.class, new Cache<>());
     bindInformer(factory, V1alpha1AipubUser.class, new Cache<>());
     bindInformer(factory, V1alpha1NodeGroup.class, new Cache<>());
@@ -64,8 +62,7 @@ class ProjectReconcilerTemplateCleanupTest {
     bindInformer(factory, V1PersistentVolume.class, new Cache<>());
 
     K8sApiProvider k8sApiProvider = mock(K8sApiProvider.class);
-    when(k8sApiProvider.getProjectApi())
-        .thenReturn(mock(GenericKubernetesApi.class));
+    when(k8sApiProvider.getProjectApi()).thenReturn(mock(GenericKubernetesApi.class));
     when(k8sApiProvider.getApiClient()).thenReturn(new ApiClient());
 
     this.reconciler = new ProjectReconciler(
@@ -77,67 +74,52 @@ class ProjectReconcilerTemplateCleanupTest {
   }
 
   @SuppressWarnings("unchecked")
-  private <T extends io.kubernetes.client.common.KubernetesObject> void bindInformer(
+  private <T extends KubernetesObject> void bindInformer(
       SharedInformerFactory factory, Class<T> type, Indexer<T> indexer) {
     SharedIndexInformer<T> informer = mock(SharedIndexInformer.class);
     when(informer.getIndexer()).thenReturn(indexer);
     when(factory.getExistingSharedIndexInformer(type)).thenReturn(informer);
   }
 
-  private V1alpha1Project terminatingProject() {
+  private V1alpha1Project project(boolean terminating) {
     List<String> finalizers = new ArrayList<>();
     finalizers.add(FinalizersConstants.PROJECT_FINALIZER);
+    V1ObjectMeta metadata = new V1ObjectMeta().name(PROJECT_NAME).finalizers(finalizers);
+    if (terminating) {
+      metadata.deletionTimestamp(OffsetDateTime.now());
+    }
     V1alpha1Project project = new V1alpha1Project();
-    project.setMetadata(new V1ObjectMeta()
-        .name(PROJECT_NAME)
-        .deletionTimestamp(OffsetDateTime.now())
-        .finalizers(finalizers));
+    project.setMetadata(metadata);
     return project;
   }
 
   @Test
-  @DisplayName("프로젝트가 삭제되면 그 프로젝트의 템플릿도 함께 정리한다")
-  void givenTerminatingProject_whenReconcile_thenDeletesItsTemplates() throws ApiException {
-    // given
-    this.projectCache.add(terminatingProject());
+  void terminatingProject_deletesItsTemplates() throws ApiException {
+    this.projectCache.add(project(true));
 
-    // when
     this.reconciler.reconcileInternal(new Request(PROJECT_NAME));
 
-    // then
     verify(this.templateService).deleteTemplatesByProject(PROJECT_NAME);
   }
 
   @Test
-  @DisplayName("템플릿 정리에 실패해도 프로젝트 삭제는 멈추지 않는다")
-  void givenTemplateCleanupFails_whenReconcile_thenProjectDeletionProceeds() throws ApiException {
-    // given
-    this.projectCache.add(terminatingProject());
+  void cleanupFailure_doesNotBreakProjectDeletion() throws ApiException {
+    this.projectCache.add(project(true));
     doThrow(new RuntimeException("backend down"))
         .when(this.templateService).deleteTemplatesByProject(any());
 
-    // when, then — 예외가 밖으로 새지 않는다
+    // 예외가 밖으로 새면 같은 루프의 finalizer 제거까지 함께 중단된다
     this.reconciler.reconcileInternal(new Request(PROJECT_NAME));
 
     verify(this.templateService).deleteTemplatesByProject(PROJECT_NAME);
   }
 
   @Test
-  @DisplayName("삭제 중이 아닌 프로젝트는 템플릿을 건드리지 않는다")
-  void givenLiveProject_whenReconcile_thenKeepsTemplates() {
-    // given
-    V1alpha1Project project = new V1alpha1Project();
-    project.setMetadata(new V1ObjectMeta().name(PROJECT_NAME));
-    this.projectCache.add(project);
+  void nonTerminatingProject_leavesTemplatesAlone() throws ApiException {
+    this.projectCache.add(project(false));
 
-    // when
-    try {
-      this.reconciler.reconcileInternal(new Request(PROJECT_NAME));
-    } catch (Exception ignored) {
-      // 살아있는 프로젝트 경로는 이 테스트의 관심사가 아니다
-    }
+    this.reconciler.reconcileInternal(new Request(PROJECT_NAME));
 
-    // then
     verifyNoInteractions(this.templateService);
   }
 }

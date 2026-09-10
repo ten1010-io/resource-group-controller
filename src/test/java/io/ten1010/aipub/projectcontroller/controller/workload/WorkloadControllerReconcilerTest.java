@@ -24,6 +24,8 @@ import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodTemplateSpec;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DockerConfigJsonResolver;
+import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectType;
+import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectTypeConstants;
 import io.ten1010.aipub.projectcontroller.domain.k8s.LabelConstants;
 import io.ten1010.aipub.projectcontroller.domain.k8s.NamespaceAllowlistResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.ReconciliationService;
@@ -42,7 +44,17 @@ class WorkloadControllerReconcilerTest {
 
   private static final String EXCLUSION_LABEL = "test.aipub/excluded";
 
+  /** 운영 배선과 동일한 지원 워크로드 타입 6종 (ControllerConfiguration 이 팩토리에서 수집하는 값) */
+  private static final List<? extends K8sObjectType<?>> SUPPORTED_TYPES = List.of(
+      K8sObjectTypeConstants.CRON_JOB_V1,
+      K8sObjectTypeConstants.DAEMON_SET_V1,
+      K8sObjectTypeConstants.DEPLOYMENT_V1,
+      K8sObjectTypeConstants.JOB_V1,
+      K8sObjectTypeConstants.REPLICA_SET_V1,
+      K8sObjectTypeConstants.STATEFUL_SET_V1);
+
   private Cache<V1Deployment> deploymentCache;
+  private SharedInformerFactory factory;
   private ControllerObjectReconciler mockObjectReconciler;
   private WorkloadControllerNodesResolver mockNodesResolver;
   private WorkloadControllerReconciler reconciler;
@@ -54,14 +66,14 @@ class WorkloadControllerReconcilerTest {
     this.mockObjectReconciler = mock(ControllerObjectReconciler.class);
     this.mockNodesResolver = mock(WorkloadControllerNodesResolver.class);
 
-    SharedInformerFactory factory = mock(SharedInformerFactory.class);
+    this.factory = mock(SharedInformerFactory.class);
     SharedIndexInformer<V1Deployment> deploymentInformer = mock(SharedIndexInformer.class);
     when(deploymentInformer.getIndexer()).thenReturn(this.deploymentCache);
-    when(factory.getExistingSharedIndexInformer(V1Deployment.class))
+    when(this.factory.getExistingSharedIndexInformer(V1Deployment.class))
         .thenReturn(deploymentInformer);
     SharedIndexInformer<V1alpha1Project> projectInformer = mock(SharedIndexInformer.class);
     when(projectInformer.getIndexer()).thenReturn(mock(Indexer.class));
-    when(factory.getExistingSharedIndexInformer(V1alpha1Project.class))
+    when(this.factory.getExistingSharedIndexInformer(V1alpha1Project.class))
         .thenReturn(projectInformer);
 
     Cache<V1Namespace> namespaceCache = new Cache<>();
@@ -77,8 +89,10 @@ class WorkloadControllerReconcilerTest {
         new NamespaceAllowlistResolver(namespaceCache));
 
     this.reconciler = new WorkloadControllerReconciler(
-        factory,
+        this.factory,
         reconciliationService,
+        SUPPORTED_TYPES,
+        false,
         V1Deployment.class,
         controller -> ((V1Deployment) controller).getSpec().getTemplate(),
         this.mockObjectReconciler,
@@ -152,6 +166,22 @@ class WorkloadControllerReconcilerTest {
     this.deploymentCache.add(deployment("kubevirt", Map.of(), List.of(controllerRef)));
 
     Result result = this.reconciler.reconcileInternal(new Request("kubevirt", "test-deployment"));
+
+    assertThat(result.isRequeue()).isFalse();
+    verifyNoInteractions(this.mockObjectReconciler, this.mockNodesResolver);
+  }
+
+  @Test
+  @DisplayName("미지원 owner여도 정책이 꺼진 타입(Deployment)이면 reconcile하지 않는다")
+  void unsupportedControllerOwnedWorkload_skippedWhenPolicyDisabled() throws ApiException {
+    // reconcilesWhenOwnedByUnsupportedType == false 인 타입이다. 이 워크로드의 spec.template 을
+    // 새로 쓰면 실행 중 파드가 재시작되고 소유 CR 컨트롤러와 쓰기 경합이 생기므로 건드리지 않는다.
+    V1OwnerReference controllerRef = new V1OwnerReference()
+        .apiVersion("trident.netapp.io/v1").kind("TridentOrchestrator")
+        .name("owner").uid("uid").controller(true);
+    this.deploymentCache.add(deployment("default", Map.of(), List.of(controllerRef)));
+
+    Result result = this.reconciler.reconcileInternal(new Request("default", "test-deployment"));
 
     assertThat(result.isRequeue()).isFalse();
     verifyNoInteractions(this.mockObjectReconciler, this.mockNodesResolver);
