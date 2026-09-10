@@ -24,7 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class AipubBackendClientFactory {
 
-  private static final String API_BASE_PATH = "/api/v1alpha1";
   private static final String KEY_STORE_TYPE = "PKCS12";
   // reconcile 워커가 1개뿐이라 응답 없는 백엔드가 그대로 다른 프로젝트의 reconcile 지연이 된다.
   // OkHttp 기본 callTimeout 은 무제한이므로 상한을 명시한다.
@@ -34,7 +33,7 @@ public final class AipubBackendClientFactory {
   }
 
   public static ApiClient create(String serverUrl, boolean verifyingSsl,
-      AipubProperties.MtlsProperty mtls) {
+      AipubProperties.MtlsProperty mtls, String basePath) {
     String keyStoreFile = Objects.requireNonNull(mtls.getKeyStoreFile(),
         "app.aipub.mtls.key-store-file must be configured");
     String caCertificateFile = Objects.requireNonNull(mtls.getCaCertificateFile(),
@@ -48,7 +47,7 @@ public final class AipubBackendClientFactory {
     }
 
     ApiClient client = new ApiClient();
-    client.setBasePath(serverUrl + API_BASE_PATH);
+    client.setBasePath(serverUrl + basePath);
     // 서버 인증서는 내부 CA 만 신뢰한다. 게이트웨이 인증서 SAN 에 클러스터 내부 DNS 가
     // 들어 있어 호스트명 검증도 그대로 통과한다.
     client.setVerifyingSsl(verifyingSsl);

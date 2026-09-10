@@ -13,6 +13,7 @@ import io.ten1010.aipub.projectcontroller.controller.AbstractReconciler;
 import io.ten1010.aipub.projectcontroller.controller.BoundObjectResolver;
 import io.ten1010.aipub.projectcontroller.controller.RequestHelper;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.DockerfileService;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.TemplateService;
 import io.ten1010.aipub.projectcontroller.domain.k8s.FinalizersConstants;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sApiProvider;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectTypeConstants;
@@ -53,15 +54,18 @@ public class ProjectReconciler extends AbstractReconciler {
   private final NamespaceNameResolver namespaceNameResolver;
   private final List<String> reservedName;
   private final DockerfileService dockerfileService;
+  private final TemplateService templateService;
 
   public ProjectReconciler(
       ReconciliationService reconciliationService,
       SharedInformerFactory sharedInformerFactory,
       K8sApiProvider k8sApiProvider,
       List<String> reservedName,
-      DockerfileService dockerfileService) {
+      DockerfileService dockerfileService,
+      TemplateService templateService) {
     this.reconciliationService = reconciliationService;
     this.dockerfileService = dockerfileService;
+    this.templateService = templateService;
     this.projectIndexer = sharedInformerFactory
         .getExistingSharedIndexInformer(V1alpha1Project.class)
         .getIndexer();
@@ -116,7 +120,9 @@ public class ProjectReconciler extends AbstractReconciler {
   private Result reconcileTerminatingProject(V1alpha1Project project, boolean namespaceRemoved)
       throws ApiException {
     if (namespaceRemoved) {
-      deleteDockerfilesQuietly(K8sObjectUtils.getName(project));
+      String projectName = K8sObjectUtils.getName(project);
+      deleteDockerfilesQuietly(projectName);
+      deleteTemplatesQuietly(projectName);
 
       V1alpha1Project clone = ProjectUtils.clone(project);
       Objects.requireNonNull(clone.getMetadata());
@@ -135,6 +141,15 @@ public class ProjectReconciler extends AbstractReconciler {
       this.dockerfileService.deleteDockerfilesByProject(projectName);
     } catch (Exception e) {
       log.error("Failed to clean up dockerfiles of a deleted project: project={}", projectName, e);
+    }
+  }
+
+  // 위와 같은 이유로 best-effort. 놓친 행은 backend 의 고아 정리 배치가 회수한다.
+  private void deleteTemplatesQuietly(String projectName) {
+    try {
+      this.templateService.deleteTemplatesByProject(projectName);
+    } catch (Exception e) {
+      log.error("Failed to clean up templates of a deleted project: project={}", projectName, e);
     }
   }
 

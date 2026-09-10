@@ -37,19 +37,19 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** project 삭제 훅의 Dockerfile 정리. 정리는 best-effort 라 실패해도 삭제 흐름이 멈추지 않는 것까지 함께 고정한다. */
-class ProjectReconcilerDockerfileCleanupTest {
+/** project 삭제 훅의 Template 정리. 정리는 best-effort 라 실패해도 삭제 흐름이 멈추지 않는 것까지 함께 고정한다. */
+class ProjectReconcilerTemplateCleanupTest {
 
   private static final String PROJECT_NAME = "proj-a";
 
   private Cache<V1alpha1Project> projectCache;
-  private DockerfileService dockerfileService;
+  private TemplateService templateService;
   private ProjectReconciler reconciler;
 
   @BeforeEach
   void setUp() {
     this.projectCache = new Cache<>();
-    this.dockerfileService = mock(DockerfileService.class);
+    this.templateService = mock(TemplateService.class);
 
     SharedInformerFactory factory = mock(SharedInformerFactory.class);
     bindInformer(factory, V1alpha1Project.class, this.projectCache);
@@ -71,8 +71,8 @@ class ProjectReconcilerDockerfileCleanupTest {
         factory,
         k8sApiProvider,
         List.of(),
-        this.dockerfileService,
-        mock(TemplateService.class));
+        mock(DockerfileService.class),
+        this.templateService);
   }
 
   @SuppressWarnings("unchecked")
@@ -96,32 +96,32 @@ class ProjectReconcilerDockerfileCleanupTest {
   }
 
   @Test
-  void terminatingProject_deletesItsDockerfiles() throws ApiException {
+  void terminatingProject_deletesItsTemplates() throws ApiException {
     this.projectCache.add(project(true));
 
     this.reconciler.reconcileInternal(new Request(PROJECT_NAME));
 
-    verify(this.dockerfileService).deleteDockerfilesByProject(PROJECT_NAME);
+    verify(this.templateService).deleteTemplatesByProject(PROJECT_NAME);
   }
 
   @Test
   void cleanupFailure_doesNotBreakProjectDeletion() throws ApiException {
     this.projectCache.add(project(true));
     doThrow(new RuntimeException("backend down"))
-        .when(this.dockerfileService).deleteDockerfilesByProject(any());
+        .when(this.templateService).deleteTemplatesByProject(any());
 
     // 예외가 밖으로 새면 같은 루프의 finalizer 제거까지 함께 중단된다
     this.reconciler.reconcileInternal(new Request(PROJECT_NAME));
 
-    verify(this.dockerfileService).deleteDockerfilesByProject(PROJECT_NAME);
+    verify(this.templateService).deleteTemplatesByProject(PROJECT_NAME);
   }
 
   @Test
-  void nonTerminatingProject_leavesDockerfilesAlone() throws ApiException {
+  void nonTerminatingProject_leavesTemplatesAlone() throws ApiException {
     this.projectCache.add(project(false));
 
     this.reconciler.reconcileInternal(new Request(PROJECT_NAME));
 
-    verifyNoInteractions(this.dockerfileService);
+    verifyNoInteractions(this.templateService);
   }
 }

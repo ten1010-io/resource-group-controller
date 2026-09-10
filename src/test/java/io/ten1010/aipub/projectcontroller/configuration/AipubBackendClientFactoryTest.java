@@ -16,15 +16,17 @@ import org.junit.jupiter.api.io.TempDir;
 class AipubBackendClientFactoryTest {
 
   private static final String SERVER_URL = "https://aipub-backend-gateway.aipub.svc.cluster.local:8443";
+  private static final String V1ALPHA1 = "/api/v1alpha1";
+  private static final String V1ALPHA2 = "/api/v1alpha2";
 
   @Test
   void createdClientUsesInternalCaAndClientCertificateWithoutBasicAuth(@TempDir Path dir)
       throws Exception {
     AipubProperties.MtlsProperty mtls = mtlsProperty(writeCaCertificate(dir), writeKeyStore(dir));
 
-    ApiClient client = AipubBackendClientFactory.create(SERVER_URL, true, mtls);
+    ApiClient client = AipubBackendClientFactory.create(SERVER_URL, true, mtls, V1ALPHA1);
 
-    assertThat(client.getBasePath()).isEqualTo(SERVER_URL + "/api/v1alpha1");
+    assertThat(client.getBasePath()).isEqualTo(SERVER_URL + V1ALPHA1);
     assertThat(client.isVerifyingSsl()).isTrue();
     assertThat(client.getKeyManagers()).isNotNull();
     assertThat(client.getSslCaCert()).contains("BEGIN CERTIFICATE");
@@ -33,11 +35,23 @@ class AipubBackendClientFactoryTest {
   }
 
   @Test
+  void basePathIsApplied_soV1alpha2ClientSharesTheSameMtlsSetup(@TempDir Path dir)
+      throws Exception {
+    AipubProperties.MtlsProperty mtls = mtlsProperty(writeCaCertificate(dir), writeKeyStore(dir));
+
+    ApiClient client = AipubBackendClientFactory.create(SERVER_URL, true, mtls, V1ALPHA2);
+
+    assertThat(client.getBasePath()).isEqualTo(SERVER_URL + V1ALPHA2);
+    assertThat(client.getKeyManagers()).isNotNull();
+    assertThat(client.getAuthentication()).isNull();
+  }
+
+  @Test
   void verificationCanBeDisabledWhileStillPresentingClientCertificate(@TempDir Path dir)
       throws Exception {
     AipubProperties.MtlsProperty mtls = mtlsProperty(writeCaCertificate(dir), writeKeyStore(dir));
 
-    ApiClient client = AipubBackendClientFactory.create(SERVER_URL, false, mtls);
+    ApiClient client = AipubBackendClientFactory.create(SERVER_URL, false, mtls, V1ALPHA1);
 
     assertThat(client.isVerifyingSsl()).isFalse();
     // 비상 스위치는 서버 검증만 끈다 — 클라이언트 인증서는 계속 제시되므로 게이트웨이 쪽
@@ -50,7 +64,7 @@ class AipubBackendClientFactoryTest {
     AipubProperties.MtlsProperty mtls = mtlsProperty(
         writeCaCertificate(dir), dir.resolve("absent.p12"));
 
-    assertThatThrownBy(() -> AipubBackendClientFactory.create(SERVER_URL, true, mtls))
+    assertThatThrownBy(() -> AipubBackendClientFactory.create(SERVER_URL, true, mtls, V1ALPHA1))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Failed to load client key store");
   }
@@ -60,7 +74,7 @@ class AipubBackendClientFactoryTest {
     AipubProperties.MtlsProperty mtls = mtlsProperty(
         dir.resolve("absent.crt"), writeKeyStore(dir));
 
-    assertThatThrownBy(() -> AipubBackendClientFactory.create(SERVER_URL, true, mtls))
+    assertThatThrownBy(() -> AipubBackendClientFactory.create(SERVER_URL, true, mtls, V1ALPHA1))
         .isInstanceOf(IllegalStateException.class)
         .hasMessageContaining("Failed to read internal CA certificate");
   }
@@ -69,7 +83,7 @@ class AipubBackendClientFactoryTest {
   void failsWhenMtlsPropertiesAreNotConfigured() {
     AipubProperties.MtlsProperty mtls = new AipubProperties.MtlsProperty();
 
-    assertThatThrownBy(() -> AipubBackendClientFactory.create(SERVER_URL, true, mtls))
+    assertThatThrownBy(() -> AipubBackendClientFactory.create(SERVER_URL, true, mtls, V1ALPHA1))
         .isInstanceOf(NullPointerException.class)
         .hasMessageContaining("app.aipub.mtls.key-store-file");
   }

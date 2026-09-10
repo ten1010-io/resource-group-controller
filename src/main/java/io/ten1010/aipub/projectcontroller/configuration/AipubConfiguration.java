@@ -12,12 +12,14 @@ import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobot
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobotService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobotUsernameResolver;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.RepositoryService;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.TemplateService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ArtifactServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.DockerfileServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageHubServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageRegistryRobotServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageRegistryRobotUsernameResolverImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.RepositoryServiceImpl;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.TemplateServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DefaultDockerConfigJsonResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DefaultSubjectResolver;
 import io.ten1010.aipub.projectcontroller.domain.k8s.DockerConfigJsonResolver;
@@ -35,9 +37,14 @@ import org.springframework.context.annotation.Configuration;
 @Getter
 public class AipubConfiguration {
 
+  private static final String V1ALPHA1_BASE_PATH = "/api/v1alpha1";
+  private static final String V1ALPHA2_BASE_PATH = "/api/v1alpha2";
+
   private final boolean aipubEnabled;
   @Nullable
   private final ApiClient aipubBackendClient;
+  @Nullable
+  private final ApiClient aipubBackendV1alpha2Client;
   @Nullable
   private final String harborExternalUrl;
 
@@ -50,13 +57,20 @@ public class AipubConfiguration {
       Objects.requireNonNull(aipubProperties.getHarborExternalUrl());
 
       this.harborExternalUrl = aipubProperties.getHarborExternalUrl();
-      this.aipubBackendClient = AipubBackendClientFactory.create(
-          aipubProperties.getServerUrl(), aipubProperties.isVerifyingSsl(),
-          aipubProperties.getMtls());
+      this.aipubBackendClient = buildClient(aipubProperties, V1ALPHA1_BASE_PATH);
+      this.aipubBackendV1alpha2Client = buildClient(aipubProperties, V1ALPHA2_BASE_PATH);
     } else {
       this.aipubBackendClient = null;
+      this.aipubBackendV1alpha2Client = null;
       this.harborExternalUrl = null;
     }
+  }
+
+  // basePath 만 다른 두 클라이언트. 인증은 mTLS 클라이언트 인증서 하나로 통일돼 있다.
+  private static ApiClient buildClient(AipubProperties aipubProperties, String basePath) {
+    return AipubBackendClientFactory.create(
+        aipubProperties.getServerUrl(), aipubProperties.isVerifyingSsl(),
+        aipubProperties.getMtls(), basePath);
   }
 
   @Bean
@@ -108,6 +122,16 @@ public class AipubConfiguration {
     if (this.aipubEnabled) {
       Objects.requireNonNull(this.aipubBackendClient);
       return new DockerfileServiceImpl(this.aipubBackendClient);
+    }
+    return (projectName) -> {
+    };
+  }
+
+  @Bean
+  public TemplateService templateService() {
+    if (this.aipubEnabled) {
+      Objects.requireNonNull(this.aipubBackendV1alpha2Client);
+      return new TemplateServiceImpl(this.aipubBackendV1alpha2Client);
     }
     return (projectName) -> {
     };
