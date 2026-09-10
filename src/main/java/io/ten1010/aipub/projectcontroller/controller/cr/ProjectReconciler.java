@@ -12,6 +12,7 @@ import io.kubernetes.client.util.generic.GenericKubernetesApi;
 import io.ten1010.aipub.projectcontroller.controller.AbstractReconciler;
 import io.ten1010.aipub.projectcontroller.controller.BoundObjectResolver;
 import io.ten1010.aipub.projectcontroller.controller.RequestHelper;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.DockerfileService;
 import io.ten1010.aipub.projectcontroller.domain.k8s.FinalizersConstants;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sApiProvider;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectTypeConstants;
@@ -34,8 +35,12 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ProjectReconciler extends AbstractReconciler {
+
+  private static final Logger log = LoggerFactory.getLogger(ProjectReconciler.class);
 
   private final ReconciliationService reconciliationService;
   private final Indexer<V1alpha1Project> projectIndexer;
@@ -47,13 +52,16 @@ public class ProjectReconciler extends AbstractReconciler {
   private final KeyResolver keyResolver;
   private final NamespaceNameResolver namespaceNameResolver;
   private final List<String> reservedName;
+  private final DockerfileService dockerfileService;
 
   public ProjectReconciler(
       ReconciliationService reconciliationService,
       SharedInformerFactory sharedInformerFactory,
       K8sApiProvider k8sApiProvider,
-      List<String> reservedName) {
+      List<String> reservedName,
+      DockerfileService dockerfileService) {
     this.reconciliationService = reconciliationService;
+    this.dockerfileService = dockerfileService;
     this.projectIndexer = sharedInformerFactory
         .getExistingSharedIndexInformer(V1alpha1Project.class)
         .getIndexer();
@@ -108,6 +116,8 @@ public class ProjectReconciler extends AbstractReconciler {
   private Result reconcileTerminatingProject(V1alpha1Project project, boolean namespaceRemoved)
       throws ApiException {
     if (namespaceRemoved) {
+      deleteDockerfilesQuietly(K8sObjectUtils.getName(project));
+
       V1alpha1Project clone = ProjectUtils.clone(project);
       Objects.requireNonNull(clone.getMetadata());
       Objects.requireNonNull(clone.getMetadata().getFinalizers());
@@ -117,6 +127,15 @@ public class ProjectReconciler extends AbstractReconciler {
       this.projectApi.update(clone);
     }
     return new Result(false);
+  }
+
+  // best-effort — 백엔드 장애가 project 를 Terminating 에 묶거나 같은 루프의 finalizer 제거를 막으면 안 된다.
+  private void deleteDockerfilesQuietly(String projectName) {
+    try {
+      this.dockerfileService.deleteDockerfilesByProject(projectName);
+    } catch (Exception e) {
+      log.error("Failed to clean up dockerfiles of a deleted project: project={}", projectName, e);
+    }
   }
 
   private Result reconcileExistingProject(V1alpha1Project project,
