@@ -40,8 +40,10 @@ public class AipubBackendResponseException extends RuntimeException {
   }
 
   private static Optional<String> getContentTypeHeader(ApiResponse response) {
+    // Map.get 은 헤더가 없으면 빈 리스트가 아니라 null 을 준다. 그대로 두면 content-type 없는
+    // 오류 응답에서 메시지 조립 중 NPE 가 나 정작 필요한 statusCode 가 로그에서 사라진다.
     List<String> contentTypeHeaders = response.getHeaders().get("content-type");
-    if (contentTypeHeaders.isEmpty()) {
+    if (contentTypeHeaders == null || contentTypeHeaders.isEmpty()) {
       return Optional.empty();
     }
     return Optional.of(contentTypeHeaders.get(0));
