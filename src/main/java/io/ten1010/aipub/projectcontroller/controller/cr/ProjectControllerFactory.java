@@ -21,9 +21,7 @@ import io.ten1010.aipub.projectcontroller.domain.k8s.dto.V1alpha1ImageHub;
 import io.ten1010.aipub.projectcontroller.domain.k8s.dto.V1alpha1NodeGroup;
 import io.ten1010.aipub.projectcontroller.domain.k8s.dto.V1alpha1Project;
 import java.util.List;
-import lombok.AllArgsConstructor;
 
-@AllArgsConstructor
 public class ProjectControllerFactory implements ControllerFactory {
 
   private final SharedInformerFactory sharedInformerFactory;

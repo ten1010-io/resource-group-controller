@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.time.Duration;
 import java.util.Objects;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
@@ -24,6 +25,9 @@ import lombok.extern.slf4j.Slf4j;
 public final class AipubBackendClientFactory {
 
   private static final String KEY_STORE_TYPE = "PKCS12";
+  // reconcile 워커가 1개뿐이라 응답 없는 백엔드가 그대로 다른 프로젝트의 reconcile 지연이 된다.
+  // OkHttp 기본 callTimeout 은 무제한이므로 상한을 명시한다.
+  private static final Duration CALL_TIMEOUT = Duration.ofSeconds(5);
 
   private AipubBackendClientFactory() {
   }
@@ -49,6 +53,8 @@ public final class AipubBackendClientFactory {
     client.setVerifyingSsl(verifyingSsl);
     client.setSslCaCert(readCaCertificate(caCertificateFile));
     client.setKeyManagers(loadKeyManagers(keyStoreFile, mtls.getKeyStorePassword()));
+    // SSL 세터가 httpClient 를 newBuilder 로 재생성하므로 타임아웃은 그 뒤에 건다.
+    client.setHttpClient(client.getHttpClient().newBuilder().callTimeout(CALL_TIMEOUT).build());
     return client;
   }
 
