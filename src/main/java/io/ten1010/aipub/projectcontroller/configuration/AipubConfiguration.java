@@ -6,6 +6,7 @@ import io.ten1010.aipub.projectcontroller.controller.ImageRegistryRobotControlle
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.AipubDockerConfigJsonResolver;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.AipubSubjectResolver;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ArtifactService;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.DockerfileService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageHubService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobotSecretStore;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobotService;
@@ -13,6 +14,7 @@ import io.ten1010.aipub.projectcontroller.domain.aipubbackend.ImageRegistryRobot
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.RepositoryService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.TemplateService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ArtifactServiceImpl;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.DockerfileServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageHubServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageRegistryRobotServiceImpl;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.impl.ImageRegistryRobotUsernameResolverImpl;
@@ -112,6 +114,17 @@ public class AipubConfiguration {
       return new ImageHubServiceImpl(this.aipubBackendClient);
     }
     return (hubId) -> Optional.empty();
+  }
+
+  // ImageRegistryRobot 과 같은 v1alpha1 클라이언트를 재사용해 신규 설정값 없이 붙인다.
+  @Bean
+  public DockerfileService dockerfileService() {
+    if (this.aipubEnabled) {
+      Objects.requireNonNull(this.aipubBackendClient);
+      return new DockerfileServiceImpl(this.aipubBackendClient);
+    }
+    return (projectName) -> {
+    };
   }
 
   @Bean

@@ -42,6 +42,7 @@ import io.ten1010.aipub.projectcontroller.controller.workload.StatefulSetInforme
 import io.ten1010.aipub.projectcontroller.controller.workload.StatefulSetWorkloadControllerFactory;
 import io.ten1010.aipub.projectcontroller.controller.workload.WorkloadControllerFactory;
 import io.ten1010.aipub.projectcontroller.controller.workload.WorkloadControllerNodesResolver;
+import io.ten1010.aipub.projectcontroller.domain.aipubbackend.DockerfileService;
 import io.ten1010.aipub.projectcontroller.domain.aipubbackend.TemplateService;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sApiProvider;
 import io.ten1010.aipub.projectcontroller.domain.k8s.K8sObjectType;
@@ -89,9 +90,11 @@ public class ControllerConfiguration {
       K8sApiProvider k8sApiProvider,
       ReconciliationService reconciliationService,
       AipubProperties aipubProperties,
+      DockerfileService dockerfileService,
       TemplateService templateService) {
     return new ProjectControllerFactory(sharedInformerFactory, k8sApiProvider,
-        reconciliationService, aipubProperties.getReservedNamespace(), templateService)
+        reconciliationService, aipubProperties.getReservedNamespace(), dockerfileService,
+        templateService)
         .createController();
   }
 
